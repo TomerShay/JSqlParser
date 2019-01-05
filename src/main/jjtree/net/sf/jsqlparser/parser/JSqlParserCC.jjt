@@ -1350,7 +1350,7 @@ SelectExpressionItem SelectExpressionItem():
     Alias alias = null;
 }
 {
-     expression=SimpleExpression() { selectExpressionItem = new SelectExpressionItem(); selectExpressionItem.setExpression(expression); }
+     expression=AllExpressionBundle() { selectExpressionItem = new SelectExpressionItem(); selectExpressionItem.setExpression(expression); }
              [alias=Alias() { selectExpressionItem.setAlias(alias); }] { return selectExpressionItem; }
 }
 
@@ -2097,6 +2097,16 @@ Expression Expression() #Expression :
     { return retval; }
 }
 
+Expression AllExpression() #Expression :
+{
+    Expression retval = null;
+}
+{
+    retval=AllOrExpression()
+
+    { return retval; }
+}
+
 Expression OrExpression():
 {
     Expression left, right, result;
@@ -2116,6 +2126,61 @@ Expression OrExpression():
          return result;
      }
 
+}
+
+Expression AllOrExpression():
+{
+    Expression left, right, result;
+}
+{
+    left=AllAndExpression() { result = left; }
+    (
+        LOOKAHEAD(<K_OR>)
+            <K_OR>
+            right=AllAndExpression()
+            {
+                result = new OrExpression(left, right);
+                left = result;
+               }
+     )*
+     {
+         return result;
+     }
+
+}
+
+Expression AllAndExpression() :
+{
+    Expression left, right, result;
+    boolean not = false;
+}
+{
+    (
+    LOOKAHEAD(AllCondition())
+        left=AllCondition()
+        |
+        [ <K_NOT> { not = true; } ]
+        "(" left=AllOrExpression() ")" {left = new Parenthesis(left); if (not) { ((Parenthesis)left).setNot(); not = false; } }
+    )
+    { result = left; }
+
+    (
+         (<K_AND> | <K_AND_OPERATOR>)
+        (
+        LOOKAHEAD(AllCondition())
+            right=AllCondition()
+            |
+            [ <K_NOT> { not = true; } ]
+            "(" right=AllOrExpression() ")" {right = new Parenthesis(right); if (not) { ((Parenthesis)right).setNot(); not = false; } }
+        )
+        {
+            result = new AndExpression(left, right);
+            left = result;
+        }
+    )*
+    {
+        return result;
+    }
 }
 
 Expression AndExpression() :
@@ -2163,6 +2228,20 @@ Expression Condition():
     | LOOKAHEAD(Function()) result=Function()
     | <K_NOT> result=Column() { result = new NotExpression(result); }
     | result=Column()
+    | LOOKAHEAD({ "0".equals(getToken(1).image) || "1".equals(getToken(1).image) }) token=<S_LONG> { result = new LongValue(token.image); }
+    )
+
+    { return result; }
+}
+
+Expression AllCondition():
+{
+    Expression result;
+    Token token;
+}
+{
+    (LOOKAHEAD(SQLCondition()) result=SQLCondition()
+    | LOOKAHEAD(RegularCondition()) result=RegularCondition()
     | LOOKAHEAD({ "0".equals(getToken(1).image) || "1".equals(getToken(1).image) }) token=<S_LONG> { result = new LongValue(token.image); }
     )
 
@@ -2372,6 +2451,20 @@ ExpressionList SQLExpressionList():
     }
 }
 
+ExpressionList AllExpressionList():
+{
+    ExpressionList retval = new ExpressionList();
+    List<Expression> expressions = new ArrayList<Expression>();
+    Expression expr = null;
+}
+{
+    expr=AllExpressionBundle() { expressions.add(expr); } ("," expr=AllExpressionBundle() { expressions.add(expr); })*
+    {
+        retval.setExpressions(expressions);
+        return retval;
+    }
+}
+
 ExpressionList SimpleExpressionList():
 {
     ExpressionList retval = new ExpressionList();
@@ -2535,6 +2628,22 @@ Expression SimpleExpression():
    }
 }
 
+Expression AllExpressionBundle():
+{
+    Expression retval = null;
+}
+{
+  (
+        LOOKAHEAD(IntervalExpression()) retval=IntervalExpression()
+        | LOOKAHEAD(AllExpression()) retval=AllExpression()
+        | retval=ConcatExpression()
+  )
+
+   {
+      return retval;
+   }
+}
+
 Expression ConcatExpression():
 {
     Expression result = null;
@@ -2690,8 +2799,6 @@ Expression PrimaryExpression() #PrimaryExpression:
 
     | LOOKAHEAD(2) retval=NumericBind()
 
-    | LOOKAHEAD(AnalyticExpression()) retval=AnalyticExpression()
-
     | LOOKAHEAD(3) retval=ExtractExpression()
 
     | retval=MySQLGroupConcat()
@@ -2699,6 +2806,8 @@ Expression PrimaryExpression() #PrimaryExpression:
     | LOOKAHEAD(JsonExpression()) retval=JsonExpression()
 
     | LOOKAHEAD(Function()) retval=Function()
+
+    | LOOKAHEAD(AnalyticExpression()) retval=AnalyticExpression()
 
     | token=<S_DOUBLE>  { retval = new DoubleValue(token.image); }
 
@@ -3089,13 +3198,13 @@ Function Function() #Function:
 
     [ "." tmp=RelObjectNameExt() { funcName+= "." + tmp; } ["." tmp=RelObjectNameExt() { funcName+= "." + tmp; }]]
     "(" [ [<K_DISTINCT> { retval.setDistinct(true); } | <K_ALL> { retval.setAllColumns(true); }]
-        ( LOOKAHEAD(4)
-			namedExpressionList=NamedExpressionList1()
-			| 
-			LOOKAHEAD(NamedExpressionListExprFirst()) namedExpressionList = NamedExpressionListExprFirst()
+        (
+			LOOKAHEAD(AllExpressionList()) expressionList=AllExpressionList()
 			|
-			LOOKAHEAD(3) expressionList=SimpleExpressionList()
-			| 
+            LOOKAHEAD(4) namedExpressionList=NamedExpressionList1()
+            |
+            LOOKAHEAD(NamedExpressionListExprFirst()) namedExpressionList = NamedExpressionListExprFirst()
+            |
 			"*" { retval.setAllColumns(true); }
 			|  
 			expr = SubSelect() { expr.setUseBrackets(false); expressionList = new ExpressionList(expr); } 
