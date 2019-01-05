@@ -206,14 +206,6 @@ public class SelectTest {
     }
 
     @Test
-    public void testSimpleAdditionsAndSubtractionsWithSigns() throws JSQLParserException {
-        final String statement = "SELECT 1 - 1, 1 + 1, -1 - 1, -1 + 1, +1 + 1, +1 - 1 FROM tableName";
-        Select select = (Select) parserManager.parse(new StringReader(statement));
-
-        assertStatementCanBeDeparsedAs(select, statement);
-    }
-
-    @Test
     public void testOperationsWithSigns() throws JSQLParserException {
         Expression expr = CCJSqlParserUtil.parseExpression("1 - -1");
         assertEquals("1 - -1", expr.toString());
@@ -975,10 +967,6 @@ public class SelectTest {
                 getName());
         assertStatementCanBeDeparsedAs(select, statement);
 
-        statement = "SELECT substring(id, 2, 3), substring(id from 2 for 3), substring(id from 2), trim(BOTH ' ' from 'foo bar '), trim(LEADING ' ' from 'foo bar '), trim(TRAILING ' ' from 'foo bar '), trim(' ' from 'foo bar '), position('foo' in 'bar'), overlay('foo' placing 'bar' from 1), overlay('foo' placing 'bar' from 1 for 2) FROM my table";
-        select = (Select) parserManager.parse(new StringReader(statement));
-        assertStatementCanBeDeparsedAs(select, statement);
-
         statement = "SELECT MAX(id), AVG(pro) AS myavg FROM mytable WHERE mytable.col = 9 GROUP BY pro";
         select = (Select) parserManager.parse(new StringReader(statement));
         plainSelect = (PlainSelect) select.getSelectBody();
@@ -1033,17 +1021,6 @@ public class SelectTest {
         assertSqlCanBeParsedAndDeparsed("SELECT {fn test(0)} AS COL");
         //assertSqlCanBeParsedAndDeparsed("SELECT {fn current_timestamp(0)} AS COL");
         assertSqlCanBeParsedAndDeparsed("SELECT {fn concat(a, b)} AS COL");
-    }
-
-    @Test
-    public void testNamedParametersPR702() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT substring(id, 2, 3), substring(id from 2 for 3), substring(id from 2), trim(BOTH ' ' from 'foo bar '), trim(LEADING ' ' from 'foo bar '), trim(TRAILING ' ' from 'foo bar '), trim(' ' from 'foo bar '), position('foo' in 'bar'), overlay('foo' placing 'bar' from 1), overlay('foo' placing 'bar' from 1 for 2) FROM my table");
-    }
-
-    @Test
-    public void testNamedParametersPR702_2() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT substring(id, 2, 3) FROM mytable");
-        assertSqlCanBeParsedAndDeparsed("SELECT substring(id from 2 for 3) FROM mytable");
     }
 
     @Test
@@ -1533,12 +1510,6 @@ public class SelectTest {
     }
 
     @Test
-    public void testSelectFunction() throws JSQLParserException {
-        String statement = "SELECT 1 + 2 AS sum";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
     public void testWeirdSelect() throws JSQLParserException {
         String sql = "select r.reviews_id, substring(rd.reviews_text, 100) as reviews_text, r.reviews_rating, r.date_added, r.customers_name from reviews r, reviews_description rd where r.products_id = '19' and r.reviews_id = rd.reviews_id and rd.languages_id = '1' and r.reviews_status = 1 order by r.reviews_id desc limit 0, 6";
         parserManager.parse(new StringReader(sql));
@@ -1665,137 +1636,6 @@ public class SelectTest {
         String stmt = "SELECT * FROM test WHERE NOT a IS NULL";
         Statement parsed = parserManager.parse(new StringReader(stmt));
         assertStatementCanBeDeparsedAs(parsed, "SELECT * FROM test WHERE a IS NOT NULL");
-    }
-
-    @Test
-    public void testProblemSqlAnalytic() throws JSQLParserException {
-        String stmt = "SELECT a, row_number() OVER (ORDER BY a) AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic2() throws JSQLParserException {
-        String stmt = "SELECT a, row_number() OVER (ORDER BY a, b) AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic3() throws JSQLParserException {
-        String stmt = "SELECT a, row_number() OVER (PARTITION BY c ORDER BY a, b) AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic4EmptyOver() throws JSQLParserException {
-        String stmt = "SELECT a, row_number() OVER () AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic5AggregateColumnValue() throws JSQLParserException {
-        String stmt = "SELECT a, sum(b) OVER () AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic6AggregateColumnValue() throws JSQLParserException {
-        String stmt = "SELECT a, sum(b + 5) OVER (ORDER BY a) AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic7Count() throws JSQLParserException {
-        String stmt = "SELECT count(*) OVER () AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic8Complex() throws JSQLParserException {
-        String stmt = "SELECT ID, NAME, SALARY, SUM(SALARY) OVER () AS SUM_SAL, AVG(SALARY) OVER () AS AVG_SAL, MIN(SALARY) OVER () AS MIN_SAL, MAX(SALARY) OVER () AS MAX_SAL, COUNT(*) OVER () AS ROWS2 FROM STAFF WHERE ID < 60 ORDER BY ID";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic9CommaListPartition() throws JSQLParserException {
-        String stmt = "SELECT a, row_number() OVER (PARTITION BY c, d ORDER BY a, b) AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic10Lag() throws JSQLParserException {
-        String stmt = "SELECT a, lag(a, 1) OVER (PARTITION BY c ORDER BY a, b) AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testProblemSqlAnalytic11Lag() throws JSQLParserException {
-        String stmt = "SELECT a, lag(a, 1, 0) OVER (PARTITION BY c ORDER BY a, b) AS n FROM table1";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testAnalyticFunction12() throws JSQLParserException {
-        String statement = "SELECT SUM(a) OVER (PARTITION BY b ORDER BY c) FROM tab1";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunction13() throws JSQLParserException {
-        String statement = "SELECT SUM(a) OVER () FROM tab1";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunction14() throws JSQLParserException {
-        String statement = "SELECT SUM(a) OVER (PARTITION BY b ) FROM tab1";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunction15() throws JSQLParserException {
-        String statement = "SELECT SUM(a) OVER (ORDER BY c) FROM tab1";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunction16() throws JSQLParserException {
-        String statement = "SELECT SUM(a) OVER (ORDER BY c NULLS FIRST) FROM tab1";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunction17() throws JSQLParserException {
-        String statement = "SELECT AVG(sal) OVER (PARTITION BY deptno ORDER BY sal ROWS BETWEEN 0 PRECEDING AND 0 PRECEDING) AS avg_of_current_sal FROM emp";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunction18() throws JSQLParserException {
-        String statement = "SELECT AVG(sal) OVER (PARTITION BY deptno ORDER BY sal RANGE CURRENT ROW) AS avg_of_current_sal FROM emp";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunctionProblem1() throws JSQLParserException {
-        String statement = "SELECT last_value(s.revenue_hold) OVER (PARTITION BY s.id_d_insertion_order, s.id_d_product_ad_attr, trunc(s.date_id, 'mm') ORDER BY s.date_id) AS col FROM s";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunction19() throws JSQLParserException {
-        String statement = "SELECT count(DISTINCT CASE WHEN client_organic_search_drop_flag = 1 THEN brand END) OVER (PARTITION BY client, category_1, category_2, category_3, category_4 ) AS client_brand_org_drop_count FROM sometable";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunctionProblem1b() throws JSQLParserException {
-        String statement = "SELECT last_value(s.revenue_hold) OVER (PARTITION BY s.id_d_insertion_order, s.id_d_product_ad_attr, trunc(s.date_id, 'mm') ORDER BY s.date_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS col FROM s";
-        assertSqlCanBeParsedAndDeparsed(statement);
-    }
-
-    @Test
-    public void testAnalyticFunctionIssue670() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT last_value(some_column IGNORE NULLS) OVER (PARTITION BY some_other_column_1, some_other_column_2 ORDER BY some_other_column_3 ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) column_alias FROM some_table");
     }
 
     @Test
@@ -2161,12 +2001,6 @@ public class SelectTest {
     }
 
     @Test
-    public void testPivot5() throws JSQLParserException {
-        String stmt = "SELECT * FROM mytable PIVOT (count(a) FOR (b, c) IN ((10, 'a'), (20, 'b'), (30, 'c')))";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
     public void testPivotXml1() throws JSQLParserException {
         String stmt = "SELECT * FROM mytable PIVOT XML (count(a) FOR b IN ('val1'))";
         assertSqlCanBeParsedAndDeparsed(stmt);
@@ -2472,11 +2306,6 @@ public class SelectTest {
     }
 
     @Test
-    public void testSelectWithinGroup() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT LISTAGG(col1, '##') WITHIN GROUP (ORDER BY col1) FROM table1");
-    }
-
-    @Test
     public void testSelectUserVariable() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT @col FROM t1");
     }
@@ -2539,11 +2368,6 @@ public class SelectTest {
     @Test
     public void testSelectKeep() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT col1, min(col2) KEEP (DENSE_RANK FIRST ORDER BY col3), col4 FROM table1 GROUP BY col5 ORDER BY col3");
-    }
-
-    @Test
-    public void testSelectKeepOver() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT MIN(salary) KEEP (DENSE_RANK FIRST ORDER BY commission_pct) OVER (PARTITION BY department_id ) \"Worst\" FROM employees ORDER BY department_id, salary");
     }
 
     @Test
@@ -2829,13 +2653,6 @@ public class SelectTest {
     }
 
     @Test
-    public void testSpeedTestIssue235_2() throws IOException, JSQLParserException {
-        String stmt = IOUtils.toString(SelectTest.class.
-                getResourceAsStream("large-sql-issue-235.txt"));
-        assertSqlCanBeParsedAndDeparsed(stmt, true);
-    }
-
-    @Test
     public void testCastVarCharMaxIssue245() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT CAST('foo' AS NVARCHAR (MAX))");
     }
@@ -2858,6 +2675,66 @@ public class SelectTest {
     @Test
     public void testTopExpressionIssue243() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT TOP (? + 1) * FROM MyTable");
+    }
+
+    @Test
+    public void test1() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT ProductID, ProductName, CONCAT((UnitsInStock / (SELECT *, SUM(UnitsInStock) FROM products WHERE SUM(UnitsInStock) > 3)) * 100, '%') AS Percent_of_total_units_in_stock FROM products WHERE ProductName = 'test' ORDER BY ProductID");
+    }
+
+    @Test
+    public void test2() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM (SELECT c1.cda_site, c1.device_serial, c1.begindate, IF(c1.enddate IS NOT NULL AND DATE(c1.enddate) < DATE(c2.begindate) AND c1.enddate > c1.begindate, c1.enddate, DATE_SUB(c2.begindate, INTERVAL 1 SECOND)) enddate, c1.shop_id, c1.idstring, c1.storename, c1.storecode, c1.address, c1.phonenumber, c1.zipcode, c1.timeZone, c1.country, c1.state, c1.city FROM cda_devices_branches_temp c1 LEFT JOIN cda_devices_branches_temp c2 ON c2.begindate > c1.begindate AND c1.device_serial = c2.device_serial GROUP BY c1.device_serial, c1.begindate, c1.cda_site, c1.shop_id) cda_devices_fixed GROUP BY cda_site, device_serial, begindate, enddate");
+    }
+
+    @Test
+    public void test3() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT DATE_SUB(c2.begindate, INTERVAL 1 SECOND) FROM tbl");
+    }
+
+    @Test
+    public void test4() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT IF(c1.enddate = 5 AND DATE(c1.enddate) < DATE(c2.begindate), c1.enddate, DATE_SUB(c2.begindate)) enddate FROM tbl");
+    }
+
+    @Test
+    public void test5() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT SUM(bwcost + spacecost + othercost + depreciation) totalcost FROM tbl");
+    }
+
+    @Test
+    public void test6() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM (SELECT c1.cda_site, c1.device_serial, c1.begindate, IF(c1.enddate IS NOT NULL AND DATE(c1.enddate) < DATE(c2.begindate) AND c1.enddate > c1.begindate, c1.enddate, DATE_SUB(c2.begindate, INTERVAL 1 SECOND)) enddate, c1.shop_id, c1.idstring, c1.storename, c1.storecode, c1.address, c1.phonenumber, c1.zipcode, c1.timeZone, c1.country, c1.state, c1.city FROM cda_devices_branches_temp c1 LEFT JOIN cda_devices_branches_temp c2 ON c2.begindate > c1.begindate AND c1.device_serial = c2.device_serial GROUP BY c1.device_serial, c1.begindate, c1.cda_site, c1.shop_id) cda_devices_fixed GROUP BY cda_site, device_serial, begindate, enddate");
+    }
+
+    @Test
+    public void test7() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM (SELECT c1.cda_site, c1.device_serial, c1.begindate, IF(c1.enddate IS NOT NULL AND DATE(c1.enddate) < DATE(c2.begindate) AND c1.enddate > c1.begindate, c1.enddate, date_sub(c2.begindate, INTERVAL 1 second)) enddate, c1.shop_id, c1.idstring, c1.storename, c1.storecode, c1.address, c1.phonenumber, c1.zipcode, c1.timeZone, c1.country, c1.state, c1.city FROM cda_devices_branches_temp c1 LEFT JOIN cda_devices_branches_temp c2 ON c2.begindate > c1.begindate AND c1.device_serial = c2.device_serial GROUP BY c1.device_serial, c1.begindate, c1.cda_site, c1.shop_id) cda_devices_fixed GROUP BY cda_site, device_serial, begindate, enddate");
+    }
+
+    @Test
+    public void test8() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT rowno, bonus_type, rooms, CONCAT(IF(floor = -128, '?', floor), '/', IF(floor_build = -128, '?', floor_build)) AS floors, IFNULL(l1.name, '') AS location_region, IFNULL(l2.name, '') AS location_area, IFNULL(l3.name, '') AS location_microarea, IFNULL(l4.name, '') AS location_street, CONCAT(IF(s_all = 2147483647, '-', s_all), '/', IF(s_main = 2147483647, '-', s_main), '/', IF(s_kitchen = 2147483647, '-', s_kitchen), '/', IF(s_area = 2147483647, '-', s_area)) AS s, bonus_repair, action_sale, action_sale_price, action_sale_ownerpay, action_rent, action_rent_price, action_rent_ownerpay, action_rent24, action_rent24_price, action_rent24_ownerpay, IFNULL((SELECT name FROM users AS u2 WHERE u2.id = users.id_agency LIMIT 1), '') AS agency, objects.id, (((SELECT COUNT(*) FROM contacts_objects LEFT JOIN contacts ON contacts_objects.id_contact = contacts.id WHERE contacts_objects.id_record = objects.id) > 0 AND (SELECT COUNT(*) FROM contacts_objects LEFT JOIN contacts ON contacts_objects.id_contact = contacts.id WHERE contacts_objects.id_record = objects.id AND contacts.type IN ('unknown', 'client')) = 0) OR tomls = 1) AS realtor, IF((action_sale = 'complected' AND UNIX_TIMESTAMP(action_sale_date) + 3600 * 24 * 14 >= UNIX_TIMESTAMP(NOW())) OR (action_rent = 'complected' AND UNIX_TIMESTAMP(action_rent_date) + 3600 * 24 * 14 >= UNIX_TIMESTAMP(NOW())) OR (action_rent24 = 'complected' AND UNIX_TIMESTAMP(action_rent24_date) + 3600 * 24 * 14 >= UNIX_TIMESTAMP(NOW())), 1, 0) AS maybe_archive_error, IF('search' = 'secretary', SUBSTRING(advert_text, 1, 4096), NULL) AS advert_text, IF((SELECT COUNT(*) FROM objects_owners WHERE id_record = objects.id AND id_owner = 124 LIMIT 1) >= 1 OR (SELECT COUNT(*) FROM objects_owners WHERE id_record = objects.id LIMIT 1) = 0, 1, 0) AS canedit, xata_mark, xata_noveto, IF(date_formopened IS NULL, 'new', IF(UNIX_TIMESTAMP(objects.date_edit) > UNIX_TIMESTAMP(buyers_objects.date_formopened), 'edited', '-')) new, IFNULL(buyers_objects.status, 'none') status, IFNULL(buyers_objects.note, '') note FROM objsearch_rows LEFT JOIN objects ON objsearch_rows.id_object = objects.id LEFT JOIN location AS l1 ON objects.location_region = l1.id LEFT JOIN location AS l2 ON objects.location_area = l2.id LEFT JOIN location AS l3 ON objects.location_microarea = l3.id LEFT JOIN location AS l4 ON objects.location_street = l4.id LEFT JOIN users ON users.id = objects.id_creator LEFT JOIN buyers_objects ON objects.id = buyers_objects.id_object AND buyers_objects.id_buyer = 3 WHERE id_objsearch = 4 ORDER BY objsearch_rows.rowno LIMIT 500, 50");
+    }
+
+    @Test
+    public void test9() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT centre, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL THEN appointment_id END)) AS Total_raised, count(DISTINCT (CASE WHEN OCB_status = 'Accepted' THEN appointment_id END)) AS Total_accepted, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status = 'Accepted' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status IS NOT NULL THEN appointment_id END)) * 100, 0), 0), '%') AS Total_acceptance, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND bought_status = 'Bought' THEN appointment_id END)) AS Total_bought, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND bought_status = 'Bought' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status = 'Accepted' THEN appointment_id END)) * 100, 0), 0), '%') AS Total_conversion, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Sizzling Deal' THEN appointment_id END)) AS sizzling_raised, count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Sizzling Deal' THEN appointment_id END)) AS sizzling_accepted, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Sizzling Deal' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Sizzling Deal' THEN appointment_id END)) * 100, 0), 0), '%') AS sizzling_acceptance, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Sizzling Deal' AND bought_status = 'Bought' THEN appointment_id END)) AS sizzling_bought, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Sizzling Deal' AND bought_status = 'Bought' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Sizzling Deal' THEN appointment_id END)) * 100, 0), 0), '%') AS sizzling_conversion, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Hot Deal' THEN appointment_id END)) AS Hot_raised, count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Hot Deal' THEN appointment_id END)) AS Hot_accepted, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Hot Deal' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Hot Deal' THEN appointment_id END)) * 100, 0), 0), '%') AS Hot_acceptance, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Hot Deal' AND bought_status = 'Bought' THEN appointment_id END)) AS Hot_bought, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Hot Deal' AND bought_status = 'Bought' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Hot Deal' THEN appointment_id END)) * 100, 0), 0), '%') AS Hot_conversion, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Warm Deal' THEN appointment_id END)) AS Warm_raised, count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Warm Deal' THEN appointment_id END)) AS Warm_accepted, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Warm Deal' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Warm Deal' THEN appointment_id END)) * 100, 0), 0), '%') AS Warm_acceptance, count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Warm Deal' AND bought_status = 'Bought' THEN appointment_id END)) AS Warm_bought, concat(ifnull(round(count(DISTINCT (CASE WHEN OCB_status IS NOT NULL AND deal_type = 'Warm Deal' AND bought_status = 'Bought' THEN appointment_id END)) / count(DISTINCT (CASE WHEN OCB_status = 'Accepted' AND deal_type = 'Warm Deal' THEN appointment_id END)) * 100, 0), 0), '%') AS Warm_conversion FROM (SELECT a.appointment_id, centre, deal_type, CASE WHEN date(bought_at) IS NOT NULL THEN 'bought' ELSE 'Not Bought' END AS bought_status, CASE WHEN status <> 5 AND ocb_status = 1 THEN 'Running' WHEN status <> 5 AND ocb_status = 2 THEN 'Accepted' WHEN status <> 5 AND ocb_status = 3 THEN 'Expired' END AS OCB_status FROM vis_requested_c24quote a LEFT JOIN (SELECT a.appointment_id, CASE WHEN bid_amount / target_price >= 1 THEN 'Sizzling Deal' WHEN bid_amount / target_price >= 0.9 AND bid_amount / target_price < 1 THEN 'Hot Deal' WHEN bid_amount / target_price < 0.9 OR bid_amount IS NULL THEN 'Warm Deal' END AS deal_type FROM (SELECT appointment_id, id_app_auction, auction_start_time FROM (SELECT * FROM app_auction GROUP BY id_app_auction ORDER BY auction_start_time) a1 GROUP BY appointment_id) a LEFT JOIN (SELECT * FROM (SELECT * FROM (SELECT id_app_bid, fk_app_auction, fk_dealer_id, bid_amount FROM app_bid GROUP BY id_app_bid ORDER BY id_app_bid DESC) b1 GROUP BY fk_app_auction) b LEFT JOIN dealer c ON b.fk_dealer_id = c.id WHERE dealer_type = 'External') d ON a.id_app_auction = d.fk_app_auction LEFT JOIN (SELECT * FROM (SELECT * FROM vis_tp GROUP BY id_vis_tp ORDER BY created_on DESC) f1 GROUP BY appointment_id) f ON a.appointment_Id = f.appointment_id) g ON a.appointment_id = g.appointment_id LEFT JOIN orders i ON a.appointment_id = i.lead_id INNER JOIN BI.Centre_List h ON i.store_id = h.centre_id AND region = 'NDL' WHERE date(a.created_on) = date(current_date())) j GROUP BY 1");
+    }
+
+    @Test
+    public void test10() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT D.LAST_BACKUP_ID = DBH.ID, D.LAST_BACKUPDATE = (CASE WHEN DBH.BEGINTIMESTAMP IS NULL THEN NOW() ELSE DBH.BEGINTIMESTAMP END) FROM DEVICES AS D LEFT JOIN (SELECT ID, DEVICE_ID, BEGINTIMESTAMP FROM DEVICE_BACKUP_HISTORY WHERE DEVICE_ID = 604 AND (EXECUTIONTYPE LIKE '%Manual%' OR EXECUTIONTYPE LIKE '%BACKUP%' OR EXECUTIONTYPE LIKE '%Syslog%' OR EXECUTIONTYPE LIKE '%SNMP%') ORDER BY ID DESC LIMIT 1) AS DBH ON D.DEVICE_ID = DBH.DEVICE_ID WHERE D.DEVICE_ID = 604");
+    }
+
+    @Test
+    public void test11() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT SUM(col1) + col2 FROM tbl");
+    }
+
+    @Test
+    public void test12() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT SUM(a) > 0 FROM tbl");
     }
 
     @Test
@@ -3030,11 +2907,6 @@ public class SelectTest {
     }
 
     @Test
-    public void testProblemIssue445() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT E.ID_NUMBER, row_number() OVER (PARTITION BY E.ID_NUMBER ORDER BY E.DEFINED_UPDATED DESC) rn FROM T_EMPLOYMENT E");
-    }
-
-    @Test
     public void testProblemIssue485Date() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT * FROM tab WHERE tab.date = :date");
     }
@@ -3056,17 +2928,6 @@ public class SelectTest {
         assertSqlCanBeParsedAndDeparsed("SELECT * FROM #$tab#tab1");
         assertSqlCanBeParsedAndDeparsed("SELECT * FROM #$tab1#");
         assertSqlCanBeParsedAndDeparsed("SELECT * FROM $#tab1#");
-    }
-
-    @Test
-    public void testIssue514() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT listagg(c1, ';') WITHIN GROUP (PARTITION BY 1 ORDER BY 1) col FROM dual");
-    }
-
-    @Test
-    public void testIssue508LeftRightBitwiseShift() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT 1 << 1");
-        assertSqlCanBeParsedAndDeparsed("SELECT 1 >> 1");
     }
 
     @Test
