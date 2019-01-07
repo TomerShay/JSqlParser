@@ -2158,12 +2158,11 @@ Expression Condition():
     Token token;
 }
 {
-    (LOOKAHEAD(SQLCondition()) result=SQLCondition()
-    | LOOKAHEAD(RegularCondition()) result=RegularCondition()
+    (LOOKAHEAD(RegularCondition()) result=RegularCondition()
+    | LOOKAHEAD(SQLCondition()) result=SQLCondition()
     | LOOKAHEAD(Function()) result=Function()
-    | <K_NOT> result=Column() { result = new NotExpression(result); }
-    | result=Column()
-    | LOOKAHEAD({ "0".equals(getToken(1).image) || "1".equals(getToken(1).image) }) token=<S_LONG> { result = new LongValue(token.image); }
+    | <K_NOT> result=SimpleExpression() { result = new NotExpression(result); }
+    | result=SimpleExpression()
     )
 
     { return result; }
@@ -2247,6 +2246,7 @@ Expression SQLCondition():
     | LOOKAHEAD(Between()) result=Between()
     | LOOKAHEAD(IsNullExpression()) result=IsNullExpression()
     | LOOKAHEAD(ExistsExpression()) result=ExistsExpression()
+    | LOOKAHEAD(CaseWhenExpression()) result = CaseWhenExpression()
     |  result=LikeExpression()
     )
     { return result; }
@@ -2728,6 +2728,8 @@ Expression PrimaryExpression() #PrimaryExpression:
     | "{t" token=<S_CHAR_LITERAL> "}"  { retval = new TimeValue(token.image); }
 
     | "{ts" token=<S_CHAR_LITERAL> "}" { retval = new TimestampValue(token.image); }
+
+    | retval = Column()
 )
 
     ( "::" type=ColDataType() {
@@ -2989,7 +2991,7 @@ Expression CaseWhenExpression() #CaseWhenExpression:
             (LOOKAHEAD(RegularCondition()) switchExp=RegularCondition() | switchExp=BitwiseAndOr())
              ( clause=WhenThenValue() { whenClauses.add(clause); } )+
     )
-   [<K_ELSE> elseExp=SimpleExpression()]
+   [<K_ELSE> elseExp=Expression()]
     <K_END>
     {
         caseExp.setSwitchExpression(switchExp);
@@ -3006,7 +3008,7 @@ WhenClause WhenThenSearchCondition():
     Expression thenExp = null;
 }
 {
-    <K_WHEN> (LOOKAHEAD(Expression()) whenExp=Expression() | whenExp=SimpleExpression()) <K_THEN> thenExp=SimpleExpression()
+    <K_WHEN> (LOOKAHEAD(Expression()) whenExp=Expression() | whenExp=SimpleExpression()) <K_THEN> thenExp=Expression()
     {
        whenThen.setWhenExpression(whenExp);
        whenThen.setThenExpression(thenExp);
@@ -3021,7 +3023,7 @@ WhenClause WhenThenValue():
     Expression thenExp = null;
 }
 {
-    <K_WHEN> whenExp=SimpleExpression() <K_THEN> thenExp=SimpleExpression()
+    <K_WHEN> whenExp=SimpleExpression() <K_THEN> thenExp=Expression()
     {
        whenThen.setWhenExpression(whenExp);
        whenThen.setThenExpression(thenExp);
