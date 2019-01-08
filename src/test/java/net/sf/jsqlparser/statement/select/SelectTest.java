@@ -2623,8 +2623,9 @@ public class SelectTest {
     }
 
     @Test
-    public void testWhereIssue240_true() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT count(*) FROM mytable WHERE true");
+    public void testAliasStartsWithDigit() throws JSQLParserException {
+        String statement = "SELECT a AS 1_a FROM tbl WHERE c = d";
+        assertSqlCanBeParsedAndDeparsed(statement);
     }
 
     @Test
