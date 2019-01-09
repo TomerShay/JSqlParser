@@ -2623,11 +2623,11 @@ public class SelectTest {
     }
 
     @Test
-<<<<<<< HEAD
     public void testAliasStartsWithDigit() throws JSQLParserException {
         String statement = "SELECT a AS 1_a FROM tbl WHERE c = d";
         assertSqlCanBeParsedAndDeparsed(statement);
-=======
+    }
+
     public void testWhereIssue240_notBoolean() {
         try {
             CCJSqlParserUtil.parse("SELECT count(*) FROM mytable WHERE 5");
@@ -2640,7 +2640,6 @@ public class SelectTest {
     @Test
     public void testWhereIssue240_true() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT count(*) FROM mytable WHERE true");
->>>>>>> parent of 9984708... Adding support for case-when expressions in the WHERE clause
     }
 
     @Test
