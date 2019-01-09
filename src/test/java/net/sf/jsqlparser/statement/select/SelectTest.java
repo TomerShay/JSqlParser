@@ -2623,9 +2623,24 @@ public class SelectTest {
     }
 
     @Test
+<<<<<<< HEAD
     public void testAliasStartsWithDigit() throws JSQLParserException {
         String statement = "SELECT a AS 1_a FROM tbl WHERE c = d";
         assertSqlCanBeParsedAndDeparsed(statement);
+=======
+    public void testWhereIssue240_notBoolean() {
+        try {
+            CCJSqlParserUtil.parse("SELECT count(*) FROM mytable WHERE 5");
+            fail("should not be parsed");
+        } catch (JSQLParserException ex) {
+            //expected to fail
+        }
+    }
+
+    @Test
+    public void testWhereIssue240_true() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT count(*) FROM mytable WHERE true");
+>>>>>>> parent of 9984708... Adding support for case-when expressions in the WHERE clause
     }
 
     @Test
@@ -3028,25 +3043,9 @@ public class SelectTest {
 //    @Test public void testJoinerExpressionIssue596_2() throws JSQLParserException {
 //        assertSqlCanBeParsedAndDeparsed("SELECT * FROM a JOIN b JOIN c ON b.id = c.id ON a.id = c.id");
 //    }
-
     @Test
-    public void testCaseExpressionAsConditionIssue200() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT * FROM t1 WHERE CASE WHEN t1.a = 1 THEN t1.b = 2 ELSE t1.b = 3 END");
-    }
-
-    @Test
-    public void testCaseExpressionNestedConditionIssue200() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT * FROM t1 WHERE CASE WHEN t1.a = 1 THEN CASE WHEN t1.b = 2 THEN t1.c = 3 ELSE t1.c = 5 END ELSE t1.b = 3 END");
-    }
-
-    @Test
-    public void testCaseExpressionHoldsAndIssue200() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT * FROM t1 WHERE CASE WHEN t1.a = 1 THEN '2017-02-27' NOT IN ('2017-02-19', '2017-02-26', '2017-02-12', '2017-02-05') AND '2017-02-27' BETWEEN to_date AND from_date END");
-    }
-
-    @Test
-    public void testCaseExpressionWithMoreCondsIssue200() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT * FROM t1 WHERE t2.name = t1.leave_type AND t2.is_lwp = 1 AND t1.docstatus = 1 AND t1.employee = 'EMP-0001' AND CASE WHEN t1.a = 1 THEN '2017-02-27' NOT IN ('2017-02-19', '2017-02-26', '2017-02-12', '2017-02-05') AND '2017-02-27' BETWEEN to_date AND from_date WHEN t2.include_holiday THEN '2017-02-27' BETWEEN from_date AND to_date END");
+    public void testProblemSqlIssue603() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT CASE WHEN MAX(CAST(a.jobNum AS INTEGER)) IS NULL THEN '1000' ELSE MAX(CAST(a.jobNum AS INTEGER)) + 1 END FROM user_employee a");
     }
 
     @Test
