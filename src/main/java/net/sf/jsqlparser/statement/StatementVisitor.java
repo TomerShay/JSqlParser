@@ -86,4 +86,8 @@ public interface StatementVisitor {
     void visit(Block block);
 
     void visit(ValuesStatement values);
+
+    void visit(DescribeStatement describe);
+
+    public void visit(ExplainStatement aThis);
 }
