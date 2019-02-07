@@ -2630,10 +2630,6 @@ public class SelectTest {
         assertSqlCanBeParsedAndDeparsed(statement);
     }
 
-    public void testCastToSignedInteger() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT CAST(contact_id AS SIGNED INTEGER) FROM contact WHERE contact_id = 20");
-    }
-
     @Test
     public void testCastToSignedInteger() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT CAST(contact_id AS SIGNED INTEGER) FROM contact WHERE contact_id = 20");
