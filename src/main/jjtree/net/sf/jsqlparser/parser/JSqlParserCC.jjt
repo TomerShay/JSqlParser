@@ -2227,13 +2227,14 @@ Expression Condition():
         | result=SimpleExpression()
     )
 
-    { return result; }
+    { return not?new NotExpression(result):result; }
 }
 
 Expression AllCondition():
 {
     Expression result;
     Token token;
+    boolean not = false;
 }
 {
     (LOOKAHEAD(SQLCondition()) result=SQLCondition()
