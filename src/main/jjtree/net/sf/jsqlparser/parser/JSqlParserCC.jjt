@@ -4,19 +4,7 @@
  * %%
  * Copyright (C) 2004 - 2019 JSQLParser
  * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- *
- * You should have received a copy of the GNU General Lesser Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-2.1.html>.
+ * Dual licensed under GNU LGPL 2.1 or Apache License 2.0
  * #L%
  */
 
@@ -39,27 +27,6 @@ options{
 }
 
 PARSER_BEGIN(CCJSqlParser)
-/*
- * #%L
- * JSQLParser library
- * %%
- * Copyright (C) 2004 - 2014 JSQLParser
- * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Lesser Public License for more details.
- *
- * You should have received a copy of the GNU General Lesser Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/lgpl-2.1.html>.
- * #L%
- */
 
 package net.sf.jsqlparser.parser;
 
@@ -207,6 +174,7 @@ TOKEN: /* SQL Keywords. prefixed with K_ to avoid name clashes */
 |   <K_HAVING:"HAVING">
 |   <K_HIGH_PRIORITY : "HIGH_PRIORITY">
 |   <K_IF:"IF">
+|   <K_IIF:"IIF">
 |   <K_IGNORE : "IGNORE">
 |   <K_ILIKE:"ILIKE">
 |   <K_IN:"IN">
@@ -250,6 +218,7 @@ TOKEN: /* SQL Keywords. prefixed with K_ to avoid name clashes */
 |   <K_ORDER:"ORDER">
 |   <K_OUTER:"OUTER">
 |   <K_OVER:"OVER">
+|   <K_OPTIMIZE: "OPTIMIZE" >
 |   <K_PARTITION:"PARTITION">
 |   <K_PERCENT:"PERCENT">
 |   <K_PIVOT:"PIVOT">
@@ -1098,7 +1067,7 @@ String RelObjectNameExt():
   String result=null;
 } 
 {
-    ( result=RelObjectName() | tk=<K_LEFT> | tk=<K_RIGHT> | tk=<K_SET> | tk=<K_DOUBLE> | tk=<K_IF>)
+    ( result=RelObjectName() | tk=<K_LEFT> | tk=<K_RIGHT> | tk=<K_SET> | tk=<K_DOUBLE> | tk=<K_IF> | <K_OPTIMIZE>)
     {
         if (tk!=null) result=tk.image;
         return result;
@@ -1182,6 +1151,7 @@ PlainSelect PlainSelect() #PlainSelect:
     Limit limit = null;
     Offset offset = null;
     Fetch fetch = null;
+    OptimizeFor optimize = null;
     Top top = null;
         Skip skip = null;
         First first = null;
@@ -1190,6 +1160,7 @@ PlainSelect PlainSelect() #PlainSelect:
     Table updateTable = null;
     Wait wait = null;
     boolean mySqlSqlCalcFoundRows = false;
+    Token token;
 }
 {
     <K_SELECT>
@@ -1243,6 +1214,8 @@ PlainSelect PlainSelect() #PlainSelect:
     [ <K_FOR> <K_UPDATE> { plainSelect.setForUpdate(true); }
         [ <K_OF> updateTable = Table() { plainSelect.setForUpdateTable(updateTable); } ]
         [ LOOKAHEAD(<K_WAIT>) wait = Wait() { plainSelect.setWait(wait); } ] ]
+
+    [LOOKAHEAD(<K_OPTIMIZE>) optimize = OptimizeFor() { plainSelect.setOptimizeFor(optimize); } ]
 
     {
         plainSelect.setSelectItems(selectItems);
@@ -1730,7 +1703,7 @@ Join JoinerExpression() #JoinerExpression:
         | <K_CROSS> { join.setCross(true); } 
     ]
 
-          ( <K_JOIN> | "," { join.setSimple(true); } ) 
+          ( <K_JOIN> | "," { join.setSimple(true); } (<K_OUTER> { join.setOuter(true); } )? )
 
         right=FromItem()
 
@@ -1993,6 +1966,18 @@ Fetch Fetch():
         )
     {
         return fetch;
+    }
+}
+
+OptimizeFor OptimizeFor():
+{
+    Token token;
+    LongValue value;
+}
+{
+    <K_OPTIMIZE> <K_FOR> token=<S_LONG> <K_ROWS> { value = new LongValue(token.image); }
+    {
+        return new OptimizeFor(value.getValue());
     }
 }
 
@@ -2459,6 +2444,20 @@ ExpressionList SimpleExpressionList() #ExpressionList:
     }
 }
 
+ExpressionList ConditionExpressionList() #ExpressionList:
+{
+    ExpressionList retval = new ExpressionList();
+    List<Expression> expressions = new ArrayList<Expression>();
+    Expression expr = null;
+}
+{
+    expr=Condition() { expressions.add(expr); } ("," expr=Condition() { expressions.add(expr); })*
+    {
+        retval.setExpressions(expressions);
+        return retval;
+    }
+}
+
 // trim( [leading|trailing|both] expr from expr)
 // The [leading|trailing|both] token has already been consumed
 NamedExpressionList NamedExpressionList1():
@@ -2786,6 +2785,8 @@ Expression PrimaryExpression() #PrimaryExpression:
     | LOOKAHEAD(JsonExpression()) retval=JsonExpression()
 
     | LOOKAHEAD(IfFunction()) retval = IfFunction()
+
+    | LOOKAHEAD(FunctionWithCondParams()) retval = FunctionWithCondParams()
 
     | LOOKAHEAD(Function()) retval=Function()
 
@@ -3179,6 +3180,28 @@ Execute Execute(): {
     }
 }
 
+Function FunctionWithCondParams() #Function: {
+    Function retval = new Function();
+    String funcName = null;
+    ExpressionList expressionList = null;
+    Token token = null;
+}
+{
+    (token = <K_IF> | token = <K_IIF>) { funcName=token.image; }
+
+    "("
+        expressionList=ConditionExpressionList()
+	")"
+
+    {
+        retval.setParameters(expressionList);
+        retval.setName(funcName);
+        linkAST(retval,jjtThis);
+        return retval;
+    }
+}
+
+
 Function Function() #Function:
 {
     Function retval = new Function();
@@ -3199,15 +3222,17 @@ Function Function() #Function:
     funcName=RelObjectNameExt()
 
     [ "." tmp=RelObjectNameExt() { funcName+= "." + tmp; } ["." tmp=RelObjectNameExt() { funcName+= "." + tmp; }]]
-    "(" [ [<K_DISTINCT> { retval.setDistinct(true); } | <K_ALL> { retval.setAllColumns(true); }]
+    "(" [ [ LOOKAHEAD(2)(<K_DISTINCT> { retval.setDistinct(true); } | <K_ALL> { retval.setAllColumns(true); }) ]
         ( LOOKAHEAD(4)
+            "*" { retval.setAllColumns(true); }
+            |
 			namedExpressionList=NamedExpressionList1()
 			|
 			LOOKAHEAD(NamedExpressionListExprFirst()) namedExpressionList = NamedExpressionListExprFirst()
 			|
-			LOOKAHEAD(3) expressionList=SimpleExpressionList()
-			|
-			"*" { retval.setAllColumns(true); }
+            LOOKAHEAD(3) expressionList=SimpleExpressionList()
+            //|
+            //LOOKAHEAD(ConditionExpressionList()) expressionList=ConditionExpressionList()
 			|
 			expr = SubSelect() { expr.setUseBrackets(false); expressionList = new ExpressionList(expr); }
         )]
