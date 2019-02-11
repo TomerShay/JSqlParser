@@ -2354,20 +2354,8 @@ public class SelectTest {
     }
 
     @Test
-    public void testOracleHierarchicalQuery3() throws JSQLParserException {
-        String stmt = "SELECT last_name, employee_id, manager_id, LEVEL FROM employees START WITH employee_id = 100 CONNECT BY PRIOR employee_id = manager_id ORDER SIBLINGS BY last_name";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
     public void testOracleHierarchicalQuery4() throws JSQLParserException {
         String stmt = "SELECT last_name, employee_id, manager_id, LEVEL FROM employees CONNECT BY PRIOR employee_id = manager_id START WITH employee_id = 100 ORDER SIBLINGS BY last_name";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
-    public void testOracleHierarchicalQueryIssue196() throws JSQLParserException {
-        String stmt = "SELECT num1, num2, level FROM carol_tmp START WITH num2 = 1008 CONNECT BY num2 = PRIOR num1 ORDER BY level DESC";
         assertSqlCanBeParsedAndDeparsed(stmt);
     }
 

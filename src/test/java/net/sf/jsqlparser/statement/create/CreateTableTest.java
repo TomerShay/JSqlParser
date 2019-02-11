@@ -358,6 +358,12 @@ public class CreateTableTest {
     }
 
     @Test
+    public void testKeywordsAsColumnNamesInCreateTable() throws JSQLParserException {
+        String statement = "CREATE TABLE testtab (duplicate int not null, start date null, end date null)";
+        assertSqlCanBeParsedAndDeparsed(statement);
+    }
+
+    @Test
     public void testRUBiSCreateList() throws Exception {
         BufferedReader in = new BufferedReader(new InputStreamReader(CreateTableTest.class.
                 getResourceAsStream("/RUBiS-create-requests.txt")));
