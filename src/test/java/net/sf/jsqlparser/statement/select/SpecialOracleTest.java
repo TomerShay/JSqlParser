@@ -9,6 +9,21 @@
  */
 package net.sf.jsqlparser.statement.select;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statement;
+import static net.sf.jsqlparser.test.TestUtils.assertSqlCanBeParsedAndDeparsed;
+import org.apache.commons.io.FileUtils;
+import static org.junit.Assert.assertTrue;
+import org.junit.ComparisonFailure;
+import org.junit.Test;
+
 /**
  * Tries to parse and deparse all statments in net.sf.jsqlparser.test.oracle-tests.
  *

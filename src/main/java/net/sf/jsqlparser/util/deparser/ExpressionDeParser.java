@@ -17,6 +17,7 @@ import net.sf.jsqlparser.expression.AnyComparisonExpression;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.CaseExpression;
 import net.sf.jsqlparser.expression.CastExpression;
+import net.sf.jsqlparser.expression.CollateExpression;
 import net.sf.jsqlparser.expression.DateTimeLiteralExpression;
 import net.sf.jsqlparser.expression.DateValue;
 import net.sf.jsqlparser.expression.DoubleValue;
@@ -32,6 +33,7 @@ import net.sf.jsqlparser.expression.JsonExpression;
 import net.sf.jsqlparser.expression.KeepExpression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.MySQLGroupConcat;
+import net.sf.jsqlparser.expression.NextValExpression;
 import net.sf.jsqlparser.expression.NotExpression;
 import net.sf.jsqlparser.expression.NullValue;
 import net.sf.jsqlparser.expression.NumericBind;
@@ -164,7 +166,11 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(NotExpression notExpr) {
-        buffer.append(NOT);
+        if (notExpr.isExclamationMark()) {
+            buffer.append("! ");
+        } else {
+            buffer.append(NOT);
+        }
         notExpr.getExpression().accept(this);
     }
 
@@ -318,14 +324,9 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(Parenthesis parenthesis) {
-        if (parenthesis.isNot()) {
-            buffer.append(NOT);
-        }
-
         buffer.append("(");
         parenthesis.getExpression().accept(this);
         buffer.append(")");
-
     }
 
     @Override
@@ -430,6 +431,8 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
         if (function.getAttribute() != null) {
             buffer.append(".").append(function.getAttribute());
+        } else if (function.getAttributeName() != null) {
+            buffer.append(".").append(function.getAttributeName());
         }
         if (function.getKeep() != null) {
             buffer.append(" ").append(function.getKeep());
@@ -779,6 +782,16 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     @Override
     public void visit(DateTimeLiteralExpression literal) {
         buffer.append(literal.toString());
+    }
+
+    @Override
+    public void visit(NextValExpression nextVal) {
+        buffer.append("NEXTVAL FOR ").append(nextVal.getName());
+    }
+
+    @Override
+    public void visit(CollateExpression col) {
+        buffer.append(col.getLeftExpression().toString()).append(" COLLATE ").append(col.getCollate());
     }
 
 }
