@@ -1015,20 +1015,6 @@ public class SelectTest {
                 .isAllColumns());
         assertStatementCanBeDeparsedAs(select, statement);
 
-        statement = "SELECT {fn MAX(a, b, c)}, COUNT(*), D FROM tab1 GROUP BY D";
-        select = (Select) parserManager.parse(new StringReader(statement));
-        plainSelect = (PlainSelect) select.getSelectBody();
-        fun = (Function) ((SelectExpressionItem) plainSelect.getSelectItems().get(0)).
-                getExpression();
-        assertTrue(fun.isEscaped());
-        assertEquals("MAX", fun.getName());
-        assertEquals("b", ((Column) fun.getParameters().getExpressions().get(1)).
-                getFullyQualifiedName());
-        assertTrue(((Function) ((SelectExpressionItem) plainSelect.getSelectItems().get(1)).
-                getExpression())
-                .isAllColumns());
-        assertStatementCanBeDeparsedAs(select, statement);
-
         statement = "SELECT ab.MAX(a, b, c), cd.COUNT(*), D FROM tab1 GROUP BY D";
         select = (Select) parserManager.parse(new StringReader(statement));
         plainSelect = (PlainSelect) select.getSelectBody();
@@ -1042,13 +1028,6 @@ public class SelectTest {
         assertEquals("cd.COUNT", fun.getName());
         assertTrue(fun.isAllColumns());
         assertStatementCanBeDeparsedAs(select, statement);
-    }
-
-    @Test
-    public void testEscapedFunctionsIssue647() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT {fn test(0)} AS COL");
-        //assertSqlCanBeParsedAndDeparsed("SELECT {fn current_timestamp(0)} AS COL");
-        assertSqlCanBeParsedAndDeparsed("SELECT {fn concat(a, b)} AS COL");
     }
 
     @Test

@@ -1046,8 +1046,8 @@ String RelObjectNameWithoutValue() :
       | tk=<K_INSERT> | tk=<K_INDEX> | tk=<K_PRIMARY> | tk=<K_ENABLE>
 	  | tk=<K_UNSIGNED>
       | tk=<K_TEMP> | tk=<K_TEMPORARY> | tk=<K_TYPE> | tk=<K_ISNULL> 
-	  | tk=<K_ZONE> | tk=<K_COLUMNS> | tk=<K_DESCRIBE> | tk=<K_DUPLICATE> | tk=<K_START  | tk=<K_FN>
-	  | tk=<K_PATH> | tk=<K_DATE_LITERAL> | tk=<K_PLACING> | tk=<K_BOTH> | tk=<K_LEADING> | tk=<K_TRAILING> */
+	  | tk=<K_ZONE> | tk=<K_COLUMNS> | tk=<K_DESCRIBE> | tk=<K_DUPLICATE> | tk=<K_START> | tk=<K_FN>
+	  | tk=<K_PATH> | tk=<K_DATE_LITERAL> | tk=<K_PLACING> | tk=<K_BOTH> | tk=<K_LEADING> | tk=<K_TRAILING>
       )
 
     { return tk.image; }
@@ -2151,7 +2151,7 @@ Expression AllAndExpression() :
         left=AllCondition()
         |
         [ <K_NOT> { not = true; } ]
-        "(" left=AllOrExpression() ")" {left = new Parenthesis(left); if (not) { ((Parenthesis)left).setNot(); not = false; } }
+        "(" left=AllOrExpression() ")" {left = new Parenthesis(left); if (not) { left = new NotExpression(left); not = false; } }
     )
     { result = left; }
 
@@ -2162,7 +2162,7 @@ Expression AllAndExpression() :
             right=AllCondition()
             |
             [ <K_NOT> { not = true; } ]
-            "(" right=AllOrExpression() ")" {right = new Parenthesis(right); if (not) { ((Parenthesis)right).setNot(); not = false; } }
+            "(" right=AllOrExpression() ")" {right = new Parenthesis(right); if (not) { right = new NotExpression(right); not = false; } }
         )
         {
             result = new AndExpression(left, right);
@@ -2792,17 +2792,19 @@ Expression PrimaryExpression() #PrimaryExpression:
 
         | LOOKAHEAD(2) retval=NumericBind()
 
-    | LOOKAHEAD(3) retval=ExtractExpression()
+        | LOOKAHEAD(3) retval=ExtractExpression()
 
         | retval=MySQLGroupConcat()
 
         | LOOKAHEAD(JsonExpression()) retval=JsonExpression()
 
-    | LOOKAHEAD(FunctionWithCondParams()) retval = FunctionWithCondParams()
+        | LOOKAHEAD(IfFunction()) retval = IfFunction()
+
+        | LOOKAHEAD(FunctionWithCondParams()) retval = FunctionWithCondParams()
 
         | LOOKAHEAD(Function()) retval=Function()
 
-    | token=<S_DOUBLE>  { retval = new DoubleValue(token.image); }
+        | token=<S_DOUBLE>  { retval = new DoubleValue(token.image); }
 
         | token=<S_LONG> { retval = new LongValue(token.image); }
 
@@ -3351,20 +3353,22 @@ Function IfFunction() #Function:
         )]
 	")"
 
-    [ "." tmp=RelObjectName() { retval.setAttribute(tmp); }]
+    [ "." (
+            LOOKAHEAD(2) expr1=Function() { retval.setAttribute(expr1); }
+            | tmp=RelObjectName() { retval.setAttributeName(tmp); }
+          )
+    ]
 
-    [ keep = KeepExpression() ]
+    [ LOOKAHEAD(2) keep = KeepExpression() ]
 
-    ["}"]
     {
         retval.setParameters(expressionList);
         retval.setNamedParameters(namedExpressionList);
         retval.setName(tk1.image);
         retval.setKeep(keep);
-        linkAST(retval,jjtThis);
         return retval;
     }
-} 
+}
 
 MySQLGroupConcat MySQLGroupConcat():{
     MySQLGroupConcat retval = new MySQLGroupConcat();
