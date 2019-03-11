@@ -1797,13 +1797,17 @@ OracleHierarchicalExpression OracleHierarchicalQueryClause():
 List<Expression> GroupByColumnReferences():
 {
     Expression columnReference = null;
+    ExpressionList expressionList = new ExpressionList();
     List<Expression> columnReferences = new ArrayList<Expression>();
 }
 {
-    <K_GROUP> <K_BY> columnReference=SimpleExpression() {columnReferences.add(columnReference); }
-    ("," columnReference=SimpleExpression()  {columnReferences.add(columnReference); } )*
+    <K_GROUP> <K_BY>
+    (
+        "(" expressionList=AllExpressionList() ")"
+        | expressionList=AllExpressionList()
+    )
     {
-        return columnReferences;
+        return expressionList.getExpressions();
     }
 }
 
