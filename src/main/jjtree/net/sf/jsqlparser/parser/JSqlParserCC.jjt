@@ -2804,6 +2804,8 @@ Expression PrimaryExpression() #PrimaryExpression:
 
         | LOOKAHEAD(IfFunction()) retval = IfFunction()
 
+        | LOOKAHEAD(AnalyticExpression()) retval=AnalyticExpression()
+
         | LOOKAHEAD(FunctionWithCondParams()) retval = FunctionWithCondParams()
 
         | LOOKAHEAD(Function()) retval=Function()
