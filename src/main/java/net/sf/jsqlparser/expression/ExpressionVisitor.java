@@ -38,6 +38,7 @@ import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.RegExpMatchOperator;
 import net.sf.jsqlparser.expression.operators.relational.RegExpMySQLOperator;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.create.table.ColDataType;
 import net.sf.jsqlparser.statement.select.SubSelect;
 
 public interface ExpressionVisitor {
@@ -172,4 +173,5 @@ public interface ExpressionVisitor {
 
     public void visit(CollateExpression aThis);
 
+    public void visit(ColDataType aThis);
 }

@@ -2451,7 +2451,9 @@ ExpressionList SimpleExpressionList() #ExpressionList:
     Expression expr = null;
 }
 {
-    expr=SimpleExpression() { expressions.add(expr); } ("," expr=SimpleExpression() { expressions.add(expr); })*
+    (expr=SimpleExpression() | expr=ColDataType())
+    { expressions.add(expr); }
+    ("," (expr=SimpleExpression() | expr=ColDataType()) { expressions.add(expr); })*
     {
         retval.setExpressions(expressions);
         return retval;

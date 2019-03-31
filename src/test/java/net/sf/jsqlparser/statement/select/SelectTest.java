@@ -1551,6 +1551,12 @@ public class SelectTest {
     }
 
     @Test
+    public void testConvertFunctionDbIdentifiers() throws JSQLParserException {
+        String stmt = "SELECT a FROM tbl WHERE CONVERT(SUBSTRING(`a`, 9, 4), SIGNED INTEGER) >= 2101";
+        assertSqlCanBeParsedAndDeparsed(stmt);
+    }
+
+    @Test
     public void testCastInCast() throws JSQLParserException {
         String stmt = "SELECT CAST(CAST(a AS numeric) AS varchar) FROM tabelle1";
         assertSqlCanBeParsedAndDeparsed(stmt);

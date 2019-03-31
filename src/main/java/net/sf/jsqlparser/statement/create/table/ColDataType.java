@@ -12,9 +12,12 @@ package net.sf.jsqlparser.statement.create.table;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitor;
+import net.sf.jsqlparser.parser.SimpleNode;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 
-public class ColDataType {
+public class ColDataType implements Expression {
 
     private String dataType;
     private List<String> argumentsStringList;
@@ -54,6 +57,11 @@ public class ColDataType {
     }
 
     @Override
+    public void accept(ExpressionVisitor expressionVisitor) {
+        expressionVisitor.visit(this);
+    }
+
+    @Override
     public String toString() {
         StringBuilder arraySpec = new StringBuilder();
         for (Integer item : arrayData) {
@@ -68,5 +76,15 @@ public class ColDataType {
                                 getStringList(argumentsStringList, true, true) : "")
                 + arraySpec.toString()
                 + (characterSet != null ? " CHARACTER SET " + characterSet : "");
+    }
+
+    @Override
+    public SimpleNode getASTNode() {
+        return null;
+    }
+
+    @Override
+    public void setASTNode(SimpleNode node) {
+
     }
 }
