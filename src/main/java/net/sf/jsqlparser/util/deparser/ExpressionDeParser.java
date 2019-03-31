@@ -86,6 +86,7 @@ import net.sf.jsqlparser.expression.operators.relational.RegExpMySQLOperator;
 import net.sf.jsqlparser.expression.operators.relational.SupportsOldOracleJoinSyntax;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.create.table.ColDataType;
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.SelectVisitor;
 import net.sf.jsqlparser.statement.select.SubSelect;
@@ -792,6 +793,11 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     @Override
     public void visit(CollateExpression col) {
         buffer.append(col.getLeftExpression().toString()).append(" COLLATE ").append(col.getCollate());
+    }
+
+    @Override
+    public void visit(ColDataType aThis) {
+        buffer.append(aThis.toString());
     }
 
 }
