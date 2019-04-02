@@ -92,6 +92,12 @@ public class CreateIndexTest {
     }
 
     @Test
+    public void testCreateIndex7() throws JSQLParserException {
+        String stmt = "create index fk_discount_1_idx on discount (type);";
+        assertSqlCanBeParsedAndDeparsed(stmt);
+    }
+
+    @Test
     @Ignore
     public void testCreateIndexIssue633() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("CREATE INDEX idx_american_football_action_plays_1 ON american_football_action_plays USING btree (play_type)");
