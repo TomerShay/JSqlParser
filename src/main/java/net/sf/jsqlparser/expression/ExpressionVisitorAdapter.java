@@ -117,6 +117,11 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
     }
 
     @Override
+    public void visit(IntegerDivision expr) {
+        visitBinaryExpression(expr);
+    }
+
+    @Override
     public void visit(Multiplication expr) {
         visitBinaryExpression(expr);
     }

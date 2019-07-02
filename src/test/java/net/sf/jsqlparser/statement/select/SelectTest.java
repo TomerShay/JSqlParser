@@ -1762,6 +1762,12 @@ public class SelectTest {
     }
 
     @Test
+    public void testIntegerDivOperator() throws Exception {
+        String stmt = "SELECT col DIV 3";
+        assertSqlCanBeParsedAndDeparsed(stmt);
+    }
+
+    @Test
     public void testProblemSqlExcept() throws Exception {
         String stmt = "(SELECT * FROM a) EXCEPT (SELECT * FROM b)";
         assertSqlCanBeParsedAndDeparsed(stmt);
