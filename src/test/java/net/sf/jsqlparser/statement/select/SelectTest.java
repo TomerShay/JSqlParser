@@ -1592,6 +1592,12 @@ public class SelectTest {
     }
 
     @Test
+    public void asdasdasd() throws JSQLParserException {
+        String stmt = "SELECT a FROM LabelData ld WHERE Serial1 NOT IN (SELECT CardNo FROM CardStatus WHERE BatchName = 'SHUKRAN_UAE_072017_001' AND SetupName = '1st_Pack' AND asdzxc NOT IN (SELECT qdaszxc FROM sets GROUP BY tests) GROUP BY BatchName) AND ld.BatchName = 'SHUKRAN_UAE_072017_001' AND SetupName = '1st_Pack' GROUP BY RecNo";
+        assertSqlCanBeParsedAndDeparsed(stmt);
+    }
+
+    @Test
     public void testCastTypeProblem3() throws JSQLParserException {
         String stmt = "SELECT col1::varchar (256) FROM tabelle1";
         assertSqlCanBeParsedAndDeparsed(stmt);

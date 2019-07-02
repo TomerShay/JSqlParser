@@ -1071,6 +1071,7 @@ String RelObjectNameWithoutValue() :
       | tk=<K_TEMP> | tk=<K_TEMPORARY> | tk=<K_TYPE> | tk=<K_ISNULL> 
 	  | tk=<K_ZONE> | tk=<K_COLUMNS> | tk=<K_DESCRIBE> | tk=<K_DUPLICATE> | tk=<K_START> | tk=<K_FN>
 	  | tk=<K_PATH> | tk=<K_DATE_LITERAL> | tk=<K_PLACING> | tk=<K_BOTH> | tk=<K_LEADING> | tk=<K_TRAILING> | tk=<K_NEXTVAL>
+	  | tk=<K_SIZE> | tk=<K_TO> | tk=<K_SETS>
 /*      | tk=<K_PLACING> | tk=<K_BOTH> | tk=<K_LEADING> | tk=<K_TRAILING> */
       )
 
@@ -1178,7 +1179,7 @@ PlainSelect PlainSelect() #PlainSelect:
     List<SelectItem> distinctOn = null;
     Expression where = null;
     List<OrderByElement> orderByElements;
-    List<Expression> groupByColumnReferences = null;
+    GroupByElement groupBy = null;
     Expression having = null;
     Limit limit = null;
     Offset offset = null;
@@ -1237,7 +1238,7 @@ PlainSelect PlainSelect() #PlainSelect:
     [ ksqlWindow=KSQLWindowClause() { plainSelect.setKsqlWindow(ksqlWindow); } ]
     [ where=WhereClause() { plainSelect.setWhere(where); }]
     [ oracleHierarchicalQueryClause=OracleHierarchicalQueryClause() { plainSelect.setOracleHierarchical(oracleHierarchicalQueryClause); } ]
-    [ groupByColumnReferences=GroupByColumnReferences() { plainSelect.groupByColumnReferences(groupBy); }]
+    [ groupBy=GroupByColumnReferences() { plainSelect.setGroupByElement(groupBy); }]
     [ having=Having() { plainSelect.setHaving(having); }]
     [LOOKAHEAD(<K_ORDER> <K_SIBLINGS> <K_BY>) orderByElements = OrderByElements() { plainSelect.setOracleSiblings(true); plainSelect.setOrderByElements(orderByElements);    }   ]
     [LOOKAHEAD(<K_ORDER> <K_BY>) orderByElements = OrderByElements() { plainSelect.setOrderByElements(orderByElements);    }   ]
@@ -1739,7 +1740,8 @@ Join JoinerExpression() #JoinerExpression:
         | <K_CROSS> { join.setCross(true); } 
     ]
 
-          ( <K_JOIN> | "," { join.setSimple(true); } (<K_OUTER> { join.setOuter(true); } )? ) 
+          ( <K_JOIN> | "," { join.setSimple(true); } (<K_OUTER> { join.setOuter(true); } )?
+           | <K_STRAIGHT> { join.setStraight(true); } )
 
         right=FromItem()
 
@@ -1865,20 +1867,35 @@ OracleHierarchicalExpression OracleHierarchicalQueryClause():
 
 GroupByElement GroupByColumnReferences():
 {
-    Expression columnReference = null;
-    ExpressionList expressionList = new ExpressionList();
-    List<Expression> columnReferences = new ArrayList<Expression>();
+    Expression columnReference;
+    GroupByElement groupBy = new GroupByElement();
+    Expression expr;
+    ExpressionList list;
 }
 {
     <K_GROUP> <K_BY>
     (
-        "(" expressionList=AllExpressionList() ")"
-        | expressionList=AllExpressionList()
+        "(" columnReference=AllExpressionBundle() {groupBy.addGroupByExpression(columnReference); }
+            ("," columnReference=AllExpressionBundle()  {groupBy.addGroupByExpression(columnReference); } )* ")"
+    |
+        columnReference=AllExpressionBundle() {groupBy.addGroupByExpression(columnReference); }
+        ("," columnReference=AllExpressionBundle()  {groupBy.addGroupByExpression(columnReference); } )*
+    |
+        <K_GROUPING> <K_SETS> "("
+            ( LOOKAHEAD(2) "(" ")" { groupBy.addGroupingSet(new ExpressionList()); }
+                | LOOKAHEAD(3) "(" list = SimpleExpressionList() ")" { groupBy.addGroupingSet(list); }
+                | expr = SimpleExpression() { groupBy.addGroupingSet(expr); } )
+
+            ( "," ( LOOKAHEAD(2) "(" ")" { groupBy.addGroupingSet(new ExpressionList()); }
+                | LOOKAHEAD(3) "(" list = SimpleExpressionList() ")" { groupBy.addGroupingSet(list); }
+                | expr = SimpleExpression() { groupBy.addGroupingSet(expr); } ) )*
+        ")"
     )
     {
-        return expressionList.getExpressions();
+        return groupBy;
     }
 }
+
 
 Expression Having():
 {
@@ -2384,8 +2401,8 @@ Expression SQLCondition():
 }
 {
     (
-    result=ExistsExpression()
-    | LOOKAHEAD(InExpression()) result=InExpression()
+    LOOKAHEAD(InExpression()) result=InExpression()
+    | LOOKAHEAD(ExistsExpression()) result=ExistsExpression()
     | left = SimpleExpression()
         (LOOKAHEAD(2) result=Between(left)
          | LOOKAHEAD(2) result=IsNullExpression(left)
@@ -2891,8 +2908,6 @@ Expression PrimaryExpression() #PrimaryExpression:
 
         | LOOKAHEAD(IfFunction()) retval = IfFunction()
 
-        | LOOKAHEAD(AnalyticExpression()) retval=AnalyticExpression()
-
         | LOOKAHEAD(FunctionWithCondParams()) retval = FunctionWithCondParams()
 
         | LOOKAHEAD(Function()) retval=Function() [ LOOKAHEAD(2) retval = AnalyticExpression((Function)retval) ]
@@ -2915,10 +2930,10 @@ Expression PrimaryExpression() #PrimaryExpression:
 
         | retval = NextValExpression()
 
-        | retval=Column() 
+        | retval=Column()
 
         | LOOKAHEAD("(" retval=SubSelect() ")") "(" retval=SubSelect() ")"
-        
+
         | "(" retval=SimpleExpression() ")" {retval = new Parenthesis(retval); }
 
         | token=<S_CHAR_LITERAL> { retval = new StringValue(token.image); linkAST(retval,jjtThis); }
