@@ -27,7 +27,7 @@ public class PlainSelect extends ASTNodeAccessImpl implements SelectBody {
     private FromItem fromItem;
     private List<Join> joins;
     private Expression where;
-    private List<Expression> groupByColumnReferences;
+    private GroupByElement groupBy;
     private List<OrderByElement> orderByElements;
     private Expression having;
     private Limit limit;
@@ -47,6 +47,7 @@ public class PlainSelect extends ASTNodeAccessImpl implements SelectBody {
     private boolean mySqlSqlCalcFoundRows = false;
     private boolean sqlNoCacheFlag = false;
     private String forXmlPath;
+    private KSQLWindow ksqlWindow = null;
 
     public boolean isUseBrackets() {
         return useBrackets;
@@ -199,19 +200,19 @@ public class PlainSelect extends ASTNodeAccessImpl implements SelectBody {
      *
      * @return a list of {@link Expression}s
      */
-    public List<Expression> getGroupByColumnReferences() {
-        return groupByColumnReferences;
+    public GroupByElement getGroupBy() {
+        return this.groupBy;
     }
 
-    public void setGroupByColumnReferences(List<Expression> list) {
-        groupByColumnReferences = list;
+    public void setGroupByElement(GroupByElement groupBy) {
+        this.groupBy = groupBy;
     }
 
     public void addGroupByColumnReference(Expression expr) {
-        if (groupByColumnReferences == null) {
-            groupByColumnReferences = new ArrayList<Expression>();
+        if (groupBy == null) {
+            groupBy = new GroupByElement();
         }
-        groupByColumnReferences.add(expr);
+        groupBy.addGroupByExpression(expr);
     }
 
     public OracleHierarchicalExpression getOracleHierarchical() {
@@ -280,6 +281,14 @@ public class PlainSelect extends ASTNodeAccessImpl implements SelectBody {
         this.forXmlPath = forXmlPath;
     }
 
+    public KSQLWindow getKsqlWindow() {
+        return ksqlWindow;
+    }
+
+    public void setKsqlWindow(KSQLWindow ksqlWindow) {
+        this.ksqlWindow = ksqlWindow;
+    }
+
     @Override
     public String toString() {
         StringBuilder sql = new StringBuilder();
@@ -337,13 +346,19 @@ public class PlainSelect extends ASTNodeAccessImpl implements SelectBody {
                     }
                 }
             }
+
+            if (ksqlWindow != null) {
+                sql.append(" WINDOW ").append(ksqlWindow.toString());
+            }
             if (where != null) {
                 sql.append(" WHERE ").append(where);
             }
             if (oracleHierarchical != null) {
                 sql.append(oracleHierarchical.toString());
             }
-            sql.append(getFormatedList(groupByColumnReferences, "GROUP BY"));
+            if (groupBy != null) {
+                sql.append(" ").append(groupBy.toString());
+            }
             if (having != null) {
                 sql.append(" HAVING ").append(having);
             }

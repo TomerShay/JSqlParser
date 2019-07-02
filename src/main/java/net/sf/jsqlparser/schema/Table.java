@@ -16,6 +16,9 @@ import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.parser.ASTNodeAccessImpl;
 import net.sf.jsqlparser.statement.select.*;
 
+/**
+ * A table. It can have an alias and the schema name it belongs to.
+ */
 public class Table extends ASTNodeAccessImpl implements FromItem, MultiPartName {
 
 //    private Database database;
@@ -61,7 +64,9 @@ public class Table extends ASTNodeAccessImpl implements FromItem, MultiPartName 
 
     public void setDatabase(Database database) {
         setIndex(DATABASE_IDX, database.getDatabaseName());
-        setIndex(SERVER_IDX, database.getServer().getFullyQualifiedName());
+        if (database.getServer() != null) {
+            setIndex(SERVER_IDX, database.getServer().getFullyQualifiedName());
+        }
     }
 
     public String getSchemaName() {
@@ -91,7 +96,8 @@ public class Table extends ASTNodeAccessImpl implements FromItem, MultiPartName 
     }
 
     private void setIndex(int idx, String value) {
-        for (int i = 0; i < idx - partItems.size() + 1; i++) {
+        int size = partItems.size();
+        for (int i = 0; i < idx - size + 1; i++) {
             partItems.add(null);
         }
         partItems.set(idx, value);
@@ -109,7 +115,7 @@ public class Table extends ASTNodeAccessImpl implements FromItem, MultiPartName 
     public String getFullyQualifiedName() {
         StringBuilder fqn = new StringBuilder();
 
-        for (int i = partItems.size()-1 ; i >=0; i--) {
+        for (int i = partItems.size() - 1; i >= 0; i--) {
             String part = partItems.get(i);
             if (part == null) {
                 part = "";
@@ -158,4 +164,3 @@ public class Table extends ASTNodeAccessImpl implements FromItem, MultiPartName 
                 + ((hint != null) ? hint.toString() : "");
     }
 }
-

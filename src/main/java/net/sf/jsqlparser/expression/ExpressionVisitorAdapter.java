@@ -504,6 +504,11 @@ public class ExpressionVisitorAdapter implements ExpressionVisitor, ItemsListVis
     }
 
     @Override
+    public void visit(SimilarToExpression expr) {
+        visitBinaryExpression(expr);
+    }
+
+    @Override
     public void visit(ColDataType aThis) {
         aThis.accept(this);
     }

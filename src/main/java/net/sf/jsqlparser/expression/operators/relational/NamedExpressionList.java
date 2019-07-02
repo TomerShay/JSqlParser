@@ -11,9 +11,12 @@ package net.sf.jsqlparser.expression.operators.relational;
 
 import java.util.Arrays;
 import java.util.List;
-
 import net.sf.jsqlparser.expression.Expression;
 
+/**
+ * A list of named expressions, as in
+ * as in select substr('xyzzy' from 2 for 3)
+ */
 public class NamedExpressionList implements ItemsList {
 
     private List<Expression> expressions;
@@ -25,8 +28,8 @@ public class NamedExpressionList implements ItemsList {
     public NamedExpressionList(List<Expression> expressions) {
         this.expressions = expressions;
     }
-    
-    public NamedExpressionList(Expression ... expressions) {
+
+    public NamedExpressionList(Expression... expressions) {
         this.expressions = Arrays.asList(expressions);
     }
 
@@ -38,7 +41,6 @@ public class NamedExpressionList implements ItemsList {
         return names;
     }
 
-
     public void setExpressions(List<Expression> list) {
         expressions = list;
     }
@@ -46,7 +48,6 @@ public class NamedExpressionList implements ItemsList {
     public void setNames(List<String> list) {
         names = list;
     }
-
 
     @Override
     public void accept(ItemsListVisitor itemsListVisitor) {
@@ -58,13 +59,13 @@ public class NamedExpressionList implements ItemsList {
 
         StringBuilder ret = new StringBuilder();
         ret.append("(");
-        for(int i=0; i<expressions.size(); i++){
-            if(i>0){
+        for (int i = 0; i < expressions.size(); i++) {
+            if (i > 0) {
                 ret.append(" ");
             }
-            if(! names.get(i).equals("")){
+            if (!names.get(i).equals("")) {
                 ret.append(names.get(i)).append(" ").append(expressions.get(i));
-            }else{
+            } else {
                 ret.append(expressions.get(i));
             }
         }

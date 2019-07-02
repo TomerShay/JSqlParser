@@ -19,9 +19,14 @@ JSqlParser is dual licensed under **LGPL V2.1** or **Apache Software License, Ve
 
 ## Discussion
 
-Please provide feedback on https://github.com/JSQLParser/JSqlParser/issues/677, about removing bracket identifier quotation to support array processing.
+Please provide feedback on:
+
+* https://github.com/JSQLParser/JSqlParser/issues/677, about removing bracket identifier quotation to support array processing.
+* Is there any need for a Java 7 JSqlParser build, or can we move on to at least Java 8? (https://github.com/JSQLParser/JSqlParser/issues/814)
 
 ## News
+* Released version **2.1** of JSqlParser
+* Released version **2.0** of JSqlParser
 * breaking **API** change: to support chained functions attribute type was changed to **Expression**
 * Released version **1.4** of JSqlParser
 * Released version **1.3** of JSqlParser
@@ -57,23 +62,7 @@ To help JSqlParser's development you are encouraged to provide
 
 Also I would like to know about needed examples or documentation stuff.
 
-## Extensions in the latest SNAPSHOT version 2.0
-
-* first support for db date arithmentic
-* support for chained functions
-* first support for **FOR XML PATH**
-* support for **NEXTVAL FOR**
-* changed all source code license headers to reflect the dual license of JSqlParser more correctly
-* support of **OPTIMIZE FOR 20 ROWS** like expressions
-* allowed conditions within **then** and **else** of a **case** statement
-    * **SELECT * FROM mytable WHERE CASE WHEN a = 1 THEN b IN (1,2,3) ELSE c IN (1,2,3) END**
-* **change of parsing** for not within condition: outer not is represented now by NotExpression
-* support of named parameters for execute: **EXEC procedure @param = 'foo'**
-* support multivalue set statement
-* support of **describe**
-* support of **explain**
-* support of prefix **_utf8'strings'**
-* allow top keyword as table / column / alias name
+## Extensions in the latest SNAPSHOT version 2.2
 
 ## Extensions of JSqlParser releases
 
@@ -141,7 +130,7 @@ And this is the dependency declaration in your pom:
 <dependency>
 	<groupId>com.github.jsqlparser</groupId>
 	<artifactId>jsqlparser</artifactId>
-	<version>1.2</version>
+	<version>1.4</version>
 </dependency>
 ```
 

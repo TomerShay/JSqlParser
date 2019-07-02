@@ -12,11 +12,10 @@ package net.sf.jsqlparser.expression.operators.relational;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 
-public class LikeExpression extends BinaryExpression {
+public class SimilarToExpression extends BinaryExpression {
 
     private boolean not = false;
     private String escape = null;
-    private boolean caseInsensitive = false;
 
     public boolean isNot() {
         return not;
@@ -33,7 +32,7 @@ public class LikeExpression extends BinaryExpression {
 
     @Override
     public String getStringExpression() {
-        return caseInsensitive ? "ILIKE" : "LIKE";
+        return "SIMILAR TO";
     }
 
     @Override
@@ -52,13 +51,5 @@ public class LikeExpression extends BinaryExpression {
 
     public void setEscape(String escape) {
         this.escape = escape;
-    }
-
-    public boolean isCaseInsensitive() {
-        return caseInsensitive;
-    }
-
-    public void setCaseInsensitive(boolean caseInsensitive) {
-        this.caseInsensitive = caseInsensitive;
     }
 }

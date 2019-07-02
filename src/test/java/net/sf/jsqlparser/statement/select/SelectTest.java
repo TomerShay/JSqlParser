@@ -1097,17 +1097,17 @@ public class SelectTest {
         String statement = "SELECT * FROM tab1 WHERE a > 34 GROUP BY tab1.b";
         Select select = (Select) parserManager.parse(new StringReader(statement));
         PlainSelect plainSelect = (PlainSelect) select.getSelectBody();
-        assertEquals(1, plainSelect.getGroupByColumnReferences().size());
-        assertEquals("tab1.b", ((Column) plainSelect.getGroupByColumnReferences().get(0)).
+        assertEquals(1, plainSelect.getGroupBy().getGroupByExpressions().size());
+        assertEquals("tab1.b", ((Column) plainSelect.getGroupBy().getGroupByExpressions().get(0)).
                 getFullyQualifiedName());
         assertStatementCanBeDeparsedAs(select, statement);
 
         statement = "SELECT * FROM tab1 WHERE a > 34 GROUP BY 2, 3";
         select = (Select) parserManager.parse(new StringReader(statement));
         plainSelect = (PlainSelect) select.getSelectBody();
-        assertEquals(2, plainSelect.getGroupByColumnReferences().size());
-        assertEquals(2, ((LongValue) plainSelect.getGroupByColumnReferences().get(0)).getValue());
-        assertEquals(3, ((LongValue) plainSelect.getGroupByColumnReferences().get(1)).getValue());
+        assertEquals(2, plainSelect.getGroupBy().getGroupByExpressions().size());
+        assertEquals(2, ((LongValue) plainSelect.getGroupBy().getGroupByExpressions().get(0)).getValue());
+        assertEquals(3, ((LongValue) plainSelect.getGroupBy().getGroupByExpressions().get(1)).getValue());
         assertStatementCanBeDeparsedAs(select, statement);
     }
 
@@ -1314,6 +1314,11 @@ public class SelectTest {
         assertEquals("test", ((StringValue) ((LikeExpression) notExpr.getExpression()).
                 getRightExpression()).getValue());
         assertEquals(false, (boolean) ((LikeExpression) notExpr.getExpression()).isNot());
+    }
+
+    @Test
+    public void testNotLikeIssue775() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mybatisplus WHERE id NOT LIKE ?");
     }
 
     @Test
@@ -3161,7 +3166,7 @@ public class SelectTest {
 
     @Test
     public void testMultiPartNamesIssue608() throws JSQLParserException {
-        assertSqlCanBeParsedAndDeparsed("SELECT @@session.tx_read_only");
+        assertSqlCanBeParsedAndDeparsed("SELECT @@sessions.tx_read_only");
     }
 
 //    Teradata allows SEL to be used in place of SELECT
@@ -3452,5 +3457,48 @@ public class SelectTest {
                 }
             });
         }
+    }
+
+    @Test
+    public void testGroupingSets1() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT COL_1, COL_2, COL_3, COL_4, COL_5, COL_6 FROM TABLE_1 "
+                + "GROUP BY "
+                + "GROUPING SETS ((COL_1, COL_2, COL_3, COL_4), (COL_5, COL_6))");
+    }
+
+    @Test
+    public void testGroupingSets2() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT COL_1 FROM TABLE_1 GROUP BY GROUPING SETS (COL_1)");
+    }
+
+    @Test
+    public void testGroupingSets3() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT COL_1 FROM TABLE_1 GROUP BY GROUPING SETS (COL_1, ())");
+    }
+
+    @Test
+    public void testLongQualifiedNamesIssue763() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT mongodb.test.test.intField, postgres.test.test.intField, postgres.test.test.datefield FROM mongodb.test.test JOIN postgres.postgres.test.test ON mongodb.test.test.intField = postgres.test.test.intField WHERE mongodb.test.test.intField = 123");
+    }
+
+    @Test
+    public void testLongQualifiedNamesIssue763_2() throws JSQLParserException {
+        Statement parse = CCJSqlParserUtil.parse(new StringReader("SELECT mongodb.test.test.intField, postgres.test.test.intField, postgres.test.test.datefield FROM mongodb.test.test JOIN postgres.postgres.test.test ON mongodb.test.test.intField = postgres.test.test.intField WHERE mongodb.test.test.intField = 123"));
+        System.out.println(parse.toString());
+    }
+
+    @Test
+    public void testSubQueryAliasIssue754() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT C0 FROM T0 INNER JOIN T1 ON C1 = C0 INNER JOIN (SELECT W1 FROM T2) S1 ON S1.W1 = C0 ORDER BY C0");
+    }
+
+    @Test
+    public void testSimilarToIssue789() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mytable WHERE (w_id SIMILAR TO '/foo/__/bar/(left|right)/[0-9]{4}-[0-9]{2}-[0-9]{2}(/[0-9]*)?')");
+    }
+
+    @Test
+    public void testSimilarToIssue789_2() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mytable WHERE (w_id NOT SIMILAR TO '/foo/__/bar/(left|right)/[0-9]{4}-[0-9]{2}-[0-9]{2}(/[0-9]*)?')");
     }
 }

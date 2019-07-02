@@ -83,6 +83,7 @@ import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.OldOracleJoinBinaryExpression;
 import net.sf.jsqlparser.expression.operators.relational.RegExpMatchOperator;
 import net.sf.jsqlparser.expression.operators.relational.RegExpMySQLOperator;
+import net.sf.jsqlparser.expression.operators.relational.SimilarToExpression;
 import net.sf.jsqlparser.expression.operators.relational.SupportsOldOracleJoinSyntax;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -186,9 +187,9 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     public void visitOldOracleJoinBinaryExpression(OldOracleJoinBinaryExpression expression, String operator) {
-        if (expression.isNot()) {
-            buffer.append(NOT);
-        }
+//        if (expression.isNot()) {
+//            buffer.append(NOT);
+//        }
         expression.getLeftExpression().accept(this);
         if (expression.getOldOracleJoinSyntax() == EqualsTo.ORACLE_JOIN_RIGHT) {
             buffer.append("(+)");
@@ -264,7 +265,9 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
 
     @Override
     public void visit(LikeExpression likeExpression) {
-        visitBinaryExpression(likeExpression, likeExpression.isCaseInsensitive() ? " ILIKE " : " LIKE ");
+        visitBinaryExpression(likeExpression,
+                (likeExpression.isNot() ? " NOT" : "")
+                + (likeExpression.isCaseInsensitive() ? " ILIKE " : " LIKE "));
         String escape = likeExpression.getEscape();
         if (escape != null) {
             buffer.append(" ESCAPE '").append(escape).append('\'');
@@ -345,9 +348,6 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     }
 
     protected void visitBinaryExpression(BinaryExpression binaryExpression, String operator) {
-        if (binaryExpression.isNot()) {
-            buffer.append(NOT);
-        }
         binaryExpression.getLeftExpression().accept(this);
         buffer.append(operator);
         binaryExpression.getRightExpression().accept(this);
@@ -411,6 +411,7 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
             buffer.append("()");
         } else {
             boolean oldUseBracketsInExprList = useBracketsInExprList;
+            useBracketsInExprList = true;
             if (function.isDistinct()) {
                 useBracketsInExprList = false;
                 buffer.append("(DISTINCT ");
@@ -580,12 +581,12 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     public void visit(CastExpression cast) {
         if (cast.isUseCastKeyword()) {
             buffer.append("CAST(");
-            buffer.append(cast.getLeftExpression());
+            cast.getLeftExpression().accept(this);
             buffer.append(" AS ");
             buffer.append(cast.getType());
             buffer.append(")");
         } else {
-            buffer.append(cast.getLeftExpression());
+            cast.getLeftExpression().accept(this);
             buffer.append("::");
             buffer.append(cast.getType());
         }
@@ -798,6 +799,11 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
     @Override
     public void visit(ColDataType aThis) {
         buffer.append(aThis.toString());
+    }
+
+    @Override
+    public void visit(SimilarToExpression expr) {
+        visitBinaryExpression(expr, (expr.isNot() ? " NOT" : "") + " SIMILAR TO ");
     }
 
 }
