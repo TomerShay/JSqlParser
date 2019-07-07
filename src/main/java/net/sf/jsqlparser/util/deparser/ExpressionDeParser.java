@@ -216,7 +216,8 @@ public class ExpressionDeParser implements ExpressionVisitor, ItemsListVisitor {
                 columnsListCommaSeperated += ",";
             }
         }
-        buffer.append("MATCH (" + columnsListCommaSeperated + ") AGAINST (" + fullTextSearch.getAgainstValue() + " " + fullTextSearch.getSearchModifier() + ")");
+        buffer.append("MATCH (" + columnsListCommaSeperated + ") AGAINST (" + fullTextSearch.getAgainstValue() +
+                (fullTextSearch.getSearchModifier() != null ? " " + fullTextSearch.getSearchModifier() : "") + ")");
     }
 
     @Override
