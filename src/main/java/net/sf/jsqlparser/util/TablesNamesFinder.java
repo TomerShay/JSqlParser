@@ -14,6 +14,7 @@ import java.util.List;
 import net.sf.jsqlparser.expression.AllComparisonExpression;
 import net.sf.jsqlparser.expression.AnalyticExpression;
 import net.sf.jsqlparser.expression.AnyComparisonExpression;
+import net.sf.jsqlparser.expression.ArrayExpression;
 import net.sf.jsqlparser.expression.BinaryExpression;
 import net.sf.jsqlparser.expression.CaseExpression;
 import net.sf.jsqlparser.expression.CastExpression;
@@ -57,6 +58,7 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Block;
 import net.sf.jsqlparser.statement.Commit;
+import net.sf.jsqlparser.statement.DeclareStatement;
 import net.sf.jsqlparser.statement.DescribeStatement;
 import net.sf.jsqlparser.statement.ExplainStatement;
 import net.sf.jsqlparser.statement.SetStatement;
@@ -623,8 +625,11 @@ public class TablesNamesFinder implements SelectVisitor, FromItemVisitor, Expres
 
     @Override
     public void visit(Update update) {
-        for (Table table : update.getTables()) {
-            visit(table);
+        visit(update.getTable());
+        if (update.getStartJoins() != null) {
+            for (Join join : update.getStartJoins()) {
+                join.getRightItem().accept(this);
+            }
         }
         if (update.getExpressions() != null) {
             for (Expression expression : update.getExpressions()) {
@@ -851,5 +856,15 @@ public class TablesNamesFinder implements SelectVisitor, FromItemVisitor, Expres
     @Override
     public void visit(ColDataType aThis) {
         aThis.accept(this);
+    }
+
+    @Override
+    public void visit(DeclareStatement aThis) {
+    }
+
+    @Override
+    public void visit(ArrayExpression array) {
+        array.getObjExpression().accept(this);
+        array.getIndexExpression().accept(this);
     }
 }
