@@ -3497,6 +3497,7 @@ Function InternalFunction(Function retval) :
     NamedExpressionList namedExpressionList = null;
     KeepExpression keep = null;
     SubSelect expr = null;
+    Expression cond;
     Token tk1 = null;
     Token tk2 = null;
     Expression expr1 = null;
@@ -3510,12 +3511,9 @@ Function InternalFunction(Function retval) :
         ( LOOKAHEAD(4)
             "*" { retval.setAllColumns(true); }
             |
-			namedExpressionList=NamedExpressionList1()
-			|
-			LOOKAHEAD(NamedExpressionListExprFirst()) namedExpressionList = NamedExpressionListExprFirst()
-			|
+            LOOKAHEAD(RegularCondition()) cond=RegularCondition() { expressionList = new ExpressionList(cond); }
+            |
             LOOKAHEAD(3) expressionList=SimpleExpressionList()
-
 			|
 			expr = SubSelect() { expr.setUseBrackets(false); expressionList = new ExpressionList(expr); }
         )][ <K_IGNORE> <K_NULLS> {retval.setIgnoreNulls(true); }]
