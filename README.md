@@ -19,8 +19,7 @@ JSqlParser is dual licensed under **LGPL V2.1** or **Apache Software License, Ve
 
 Please provide feedback on:
 
-* https://github.com/JSQLParser/JSqlParser/issues/677, about removing bracket identifier quotation to support array processing.
-* Is there any need for a Java 7 JSqlParser build, or can we move on to at least Java 8? (https://github.com/JSQLParser/JSqlParser/issues/814)
+* no discussions at the moment
 
 ## News
 * Released version **3.0** of JSqlParser
@@ -66,6 +65,11 @@ Also I would like to know about needed examples or documentation stuff.
 
 ## Extensions in the latest SNAPSHOT version 3.1
 
+* allowed **start** as object name as column name or table name
+* introduced more positions for **!** instead of **NOT**
+* allowed more complex expressions within **if** function
+* introduced multicolumn alias like **select * from mytab as tab(c1, c2)**
+    * additional type definition is possible (issue #849)
 
 ## Extensions of JSqlParser releases
 

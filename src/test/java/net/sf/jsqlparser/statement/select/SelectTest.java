@@ -3382,6 +3382,17 @@ public class SelectTest {
     }
 
     @Test
+    public void testNotVariant4() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mytable WHERE NOT (1 = 1)");
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mytable WHERE ! (1 = 1)");
+    }
+
+    @Test
+    public void testNotVariantIssue850() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mytable WHERE id = 1 AND ! (id = 1 AND id = 2)");
+    }
+
+    @Test
     public void testDateArithmentic() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT CURRENT_DATE + (1 DAY) FROM SYSIBM.SYSDUMMY1");
     }
@@ -3647,5 +3658,62 @@ public class SelectTest {
     @Test
     public void testIssue842_2() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT INTERVAL a.repayment_period DAY");
+    }
+
+    @Test
+    public void testIssue848() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT IF(USER_ID > 10 AND SEX = 1, 1, 0)");
+    }
+
+    @Test
+    public void testIssue848_2() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT IF(USER_ID > 10, 1, 0)");
+    }
+
+    @Test
+    public void testIssue848_3() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT c1, multiset(SELECT * FROM mytable WHERE cond = 10) FROM T1 WHERE cond2 = 20");
+    }
+
+    @Test
+    public void testIssue848_4() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("select c1 from T1 where someFunc(select f1 from t2 where t2.id = T1.key) = 10", true);
+    }
+
+    @Test
+    public void testMultiColumnAliasIssue849() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mytable AS mytab2(col1, col2)");
+    }
+
+    @Test
+    public void testMultiColumnAliasIssue849_2() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM crosstab('select rowid, attribute, value from ct where attribute = ''att2'' or attribute = ''att3'' order by 1,2') AS ct(row_name text, category_1 text, category_2 text, category_3 text)");
+    }
+
+    @Test
+    public void testLimitClauseDroppedIssue845() throws JSQLParserException {
+        assertEquals(
+                "SELECT * FROM employee ORDER BY emp_id LIMIT 10 OFFSET 2",
+                CCJSqlParserUtil.parse("SELECT * FROM employee ORDER BY emp_id OFFSET 2 LIMIT 10").toString());
+    }
+
+    @Test
+    public void testLimitClauseDroppedIssue845_2() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM employee ORDER BY emp_id LIMIT 10 OFFSET 2");
+    }
+    
+    @Test
+    public void testChangeKeywordIssue859() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM CHANGE.TEST");
+    }
+    
+    @Test
+    public void testEndKeyword() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT end AS end_6 FROM mytable");
+    }
+    
+    @Test
+    public void testStartKeyword() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT c0_.start AS start_5 FROM mytable");
     }
 }

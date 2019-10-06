@@ -1120,7 +1120,7 @@ Not all names should be allowed for aliases.
 String RelObjectNameWithoutValue() : 
 {    Token tk = null; }
 {
-    (tk=<S_IDENTIFIER> | tk=<S_QUOTED_IDENTIFIER> | tk=<K_BYTE> | tk=<K_CHAR>
+    (tk=<S_IDENTIFIER> | tk=<S_QUOTED_IDENTIFIER> | tk=<K_BYTE> | tk=<K_CHAR> | tk=<K_CHANGE>
       | tk=<K_CAST> | tk=<K_COMMENT> | tk=<K_DO> | tk=<K_EXTRACT> | tk=<K_FIRST> | tk=<K_FOLLOWING> 
       | tk=<K_LAST> | tk=<K_MATERIALIZED> | tk=<K_NULLS> | tk=<K_PARTITION> | tk=<K_RANGE> 
       | tk=<K_ROW> | tk=<K_ROWS> | tk=<K_SIBLINGS> | tk=<K_XML>
@@ -1147,7 +1147,20 @@ Normal names.
 String RelObjectName() :
 {    Token tk = null; String result = null; }
 {
-    (result = RelObjectNameWithoutValue() | tk=<K_TOP> | tk=<K_VALUE> | tk=<K_VALUES> | tk=<K_INTERVAL>)
+    (result = RelObjectNameWithoutValue() | tk=<K_TOP> | tk=<K_VALUE> | tk=<K_VALUES>
+        | tk=<K_INTERVAL>)
+
+    {
+		if (tk!=null) result=tk.image;
+		return result;
+	}
+}
+
+String RelObjectNameWithoutStart() :
+{    Token tk = null; String result = null; }
+{
+    (result = RelObjectNameWithoutValue() | tk=<K_TOP> | tk=<K_VALUE> | tk=<K_VALUES>
+        | tk=<K_INTERVAL>)
 
     { 
 		if (tk!=null) result=tk.image;
@@ -1163,7 +1176,9 @@ String RelObjectNameExt():
   String result=null;
 } 
 {
-    ( result=RelObjectName() | tk=<K_LEFT> | tk=<K_RIGHT> | tk=<K_SET> | tk=<K_DOUBLE> | tk=<K_IF> | <K_OPTIMIZE> | tk=<K_LIMIT> | tk=<K_OFFSET>)
+    ( result=RelObjectName() | tk=<K_LEFT> | tk=<K_RIGHT> | tk=<K_SET>
+        | tk=<K_DOUBLE> | tk=<K_IF> | <K_OPTIMIZE> | tk=<K_LIMIT>
+        | tk=<K_OFFSET>)
     {
         if (tk!=null) result=tk.image;
         return result;
@@ -1308,6 +1323,8 @@ PlainSelect PlainSelect() #PlainSelect:
     [LOOKAHEAD(<K_ORDER> <K_BY>) orderByElements = OrderByElements() { plainSelect.setOrderByElements(orderByElements);    }   ]
     [LOOKAHEAD(<K_LIMIT>) limit = LimitWithOffset() { plainSelect.setLimit(limit);    } ]
     [LOOKAHEAD(<K_OFFSET>) offset = Offset() { plainSelect.setOffset(offset);    } ]
+	[LOOKAHEAD(<K_LIMIT>, { limit==null }) limit = LimitWithOffset() { plainSelect.setLimit(limit);    } ]
+
     [LOOKAHEAD(<K_FETCH>) fetch = Fetch() { plainSelect.setFetch(fetch);    } ]
 
     [ LOOKAHEAD(2) <K_FOR> <K_UPDATE> { plainSelect.setForUpdate(true); }
@@ -1455,11 +1472,22 @@ AllTableColumns AllTableColumns():
 Alias Alias():
 { String name = null;
   Token token = null;
-  boolean useAs = false; }
+  boolean useAs = false;
+  Alias alias;
+  String colname;
+  ColDataType colDataType = null;
+}
 {
     [<K_AS> { useAs = true; } ] 
-	( name=RelObjectName() | token=<S_CHAR_LITERAL> { name=token.image; } )
-   { return new Alias(name,useAs); }
+	( name=RelObjectNameWithoutStart() | token=<S_CHAR_LITERAL> { name=token.image; } )
+	{ alias = new Alias(name,useAs); }
+
+	[ LOOKAHEAD(2) "(" { List<Alias.AliasColumn> list = new ArrayList<Alias.AliasColumn>(); }
+		colname = RelObjectName() [ colDataType = ColDataType() ] { list.add(new Alias.AliasColumn(colname, colDataType)); }
+		("," { colDataType=null; } colname = RelObjectName() [ colDataType = ColDataType()] { list.add(new Alias.AliasColumn(colname, colDataType)); } )*
+	")" { alias.setAliasColumns(list); } ]
+
+    { return alias; }
 }
 
 MySQLIndexHint MySQLIndexHint():
@@ -2335,14 +2363,15 @@ Expression AndExpression() :
 {
     Expression left, right, result;
     boolean not = false;
+	boolean exclamationMarkNot=false;
 }
 {
     (
     LOOKAHEAD(Condition())
         left=Condition()
         |
-        [ <K_NOT> { not = true; } ]
-        "(" left=OrExpression() ")" {left = new Parenthesis(left); if (not) { left = new NotExpression(left); not = false; } }
+        [ <K_NOT> { not=true; } | "!" { not=true; exclamationMarkNot=true; } ]
+        "(" left=OrExpression() ")" {left = new Parenthesis(left); if (not) { left = new NotExpression(left, exclamationMarkNot); not = false; } }
     )
     { result = left; }
 
@@ -2352,8 +2381,8 @@ Expression AndExpression() :
         LOOKAHEAD(Condition())
             right=Condition()
             |
-            [ <K_NOT> { not = true; } ]
-            "(" right=OrExpression() ")" {right = new Parenthesis(right); if (not) { right = new NotExpression(right); not = false; } }
+            [ <K_NOT> { not=true; } | "!" { not=true; exclamationMarkNot=true; } ]
+            "(" right=OrExpression() ")" {right = new Parenthesis(right); if (not) { right = new NotExpression(right, exclamationMarkNot); not = false; } }
         )
         {
             result = new AndExpression(left, right);
@@ -2370,16 +2399,17 @@ Expression Condition():
     Expression result;
     Token token;
     boolean not = false;
+	boolean exclamationMarkNot = false;
 }
 {
-    [ LOOKAHEAD(2) <K_NOT> { not = true; }]
+    [ LOOKAHEAD(2) (<K_NOT> { not=true; } | "!" { not=true; exclamationMarkNot=true; })]
     (
         LOOKAHEAD(SQLCondition()) result=SQLCondition()
         | LOOKAHEAD(RegularCondition()) result=RegularCondition()
         | result=SimpleExpression()
     )
 
-    { return not?new NotExpression(result):result; }
+    { return not?new NotExpression(result, exclamationMarkNot):result; }
 }
 
 Expression AllCondition():
@@ -2645,14 +2675,14 @@ ExpressionList SimpleExpressionList() #ExpressionList:
     }
 }
 
-ExpressionList ConditionExpressionList() #ExpressionList:
+ExpressionList ComplexExpressionList() #ExpressionList:
 {
     ExpressionList retval = new ExpressionList();
     List<Expression> expressions = new ArrayList<Expression>();
     Expression expr = null;
 }
 {
-    expr=Condition() { expressions.add(expr); } ("," expr=Condition() { expressions.add(expr); })*
+    expr=Expression() { expressions.add(expr); } ("," expr=Expression() { expressions.add(expr); })*
     {
         retval.setExpressions(expressions);
         return retval;
@@ -3461,7 +3491,7 @@ Function FunctionWithCondParams() #Function: {
     (token = <K_IF> | token = <K_IIF>) { funcName=token.image; }
 
     "("
-        expressionList=ConditionExpressionList()
+        expressionList=ComplexExpressionList()
 	")"
 
     {
@@ -3642,6 +3672,7 @@ SubSelect SubSelect() #SubSelect:
     selectBody=SelectBody()
     {
         subSelect.setSelectBody(selectBody);
+        linkAST(subSelect,jjtThis);
         return subSelect;
     }
 }
