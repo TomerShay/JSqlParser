@@ -35,6 +35,8 @@ public class AnalyticExpression extends ASTNodeAccessImpl implements Expression 
     private AnalyticType type = AnalyticType.OVER;
     private boolean distinct = false;
     private boolean ignoreNulls = false;
+    private Expression filterExpression = null;
+    private WindowElement windowElement = null;
 
     public AnalyticExpression() {
     }
@@ -88,7 +90,15 @@ public class AnalyticExpression extends ASTNodeAccessImpl implements Expression 
     }
 
     public void setPartitionExpressionList(ExpressionList partitionExpressionList) {
-        partitionBy.setPartitionExpressionList(partitionExpressionList);
+        setPartitionExpressionList(partitionExpressionList, false);
+    }
+
+    public void setPartitionExpressionList(ExpressionList partitionExpressionList, boolean brackets) {
+        partitionBy.setPartitionExpressionList(partitionExpressionList, brackets);
+    }
+
+    public boolean isPartitionByBrackets() {
+        return partitionBy.isBrackets();
     }
 
     public String getName() {
@@ -124,11 +134,11 @@ public class AnalyticExpression extends ASTNodeAccessImpl implements Expression 
     }
 
     public WindowElement getWindowElement() {
-        return orderBy.getWindowElement();
+        return windowElement;
     }
 
     public void setWindowElement(WindowElement windowElement) {
-        orderBy.setWindowElement(windowElement);
+        this.windowElement = windowElement;
     }
 
     public AnalyticType getType() {
@@ -182,6 +192,12 @@ public class AnalyticExpression extends ASTNodeAccessImpl implements Expression 
             b.append(keep.toString()).append(" ");
         }
 
+        if (filterExpression != null) {
+            b.append("FILTER (WHERE ");
+            b.append(filterExpression.toString());
+            b.append(") ");
+        }
+
         switch (type) {
             case WITHIN_GROUP:
                 b.append("WITHIN GROUP");
@@ -193,6 +209,13 @@ public class AnalyticExpression extends ASTNodeAccessImpl implements Expression 
 
         partitionBy.toStringPartitionBy(b);
         orderBy.toStringOrderByElements(b);
+
+        if (windowElement != null) {
+            if (orderBy != null && orderBy.getOrderByElements()!=null) {
+                b.append(' ');
+            }
+            b.append(windowElement);
+        }
 
         b.append(")");
 
@@ -207,4 +230,11 @@ public class AnalyticExpression extends ASTNodeAccessImpl implements Expression 
         this.allColumns = allColumns;
     }
 
+    public Expression getFilterExpression() {
+        return filterExpression;
+    }
+
+    public void setFilterExpression(Expression filterExpression) {
+        this.filterExpression = filterExpression;
+    }
 }

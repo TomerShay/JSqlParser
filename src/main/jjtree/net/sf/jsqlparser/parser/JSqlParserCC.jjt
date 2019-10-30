@@ -175,6 +175,7 @@ TOKEN: /* SQL Keywords. prefixed with K_ to avoid name clashes */
 |   <K_EXPLAIN:"EXPLAIN">
 |   <K_EXTRACT:"EXTRACT">
 |   <K_FETCH:"FETCH">
+|   <K_FILTER: "FILTER">
 |   <K_FIRST: "FIRST">
 |   <K_FALSE: "FALSE">
 |   <K_FOLLOWING: "FOLLOWING">
@@ -195,6 +196,7 @@ TOKEN: /* SQL Keywords. prefixed with K_ to avoid name clashes */
 |   <K_IGNORE : "IGNORE">
 |   <K_ILIKE:"ILIKE">
 |   <K_IN:"IN">
+|   <K_INCLUDE:"INCLUDE">
 |   <K_INDEX: "INDEX">
 |   <K_INNER:"INNER">
 |   <K_STRAIGHT:"STRAIGHT_JOIN">
@@ -291,6 +293,7 @@ TOKEN: /* SQL Keywords. prefixed with K_ to avoid name clashes */
 |   <K_UNION:"UNION">
 |   <K_UNIQUE:"UNIQUE">
 |   <K_UNLOGGED: "UNLOGGED">
+|   <K_UNPIVOT:"UNPIVOT">
 |   <K_UPDATE:"UPDATE">
 |   <K_UPSERT:"UPSERT">
 |   <K_USE : "USE">
@@ -1134,7 +1137,7 @@ String RelObjectNameWithoutValue() :
 	  | tk=<K_ZONE> | tk=<K_COLUMNS> | tk=<K_DESCRIBE> | tk=<K_START> | tk=<K_FN>
 	  | tk=<K_PATH> | tk=<K_DATE_LITERAL> | tk=<K_PLACING> | tk=<K_BOTH> | tk=<K_LEADING> | tk=<K_TRAILING> | tk=<K_NEXTVAL>
 	  | tk=<K_SIZE> | tk=<K_TO> | tk=<K_SETS> | tk=<K_TRUE> | tk=<K_FALSE> | tk=<K_DUPLICATE>
-      | tk=<K_READ>
+      | tk=<K_READ> | tk=<K_SESSION>
 /*      | tk=<K_PLACING> | tk=<K_BOTH> | tk=<K_LEADING> | tk=<K_TRAILING> */
       )
 
@@ -1658,6 +1661,31 @@ PivotXml PivotXml():
     }
 }
 
+UnPivot UnPivot():
+{
+    UnPivot retval = new UnPivot();
+    Column unpivotClause;
+    List<Column> unpivotForClause;
+    List<SelectExpressionItem> unpivotInClause;
+}
+{
+    <K_UNPIVOT>
+    [ ( <K_INCLUDE> <K_NULLS> { retval.setIncludeNulls(true); }
+    | <K_EXCLUDE> <K_NULLS> { retval.setIncludeNulls(false); } ) ]
+    "(" unpivotClause = Column() <K_FOR>
+    unpivotForClause = PivotForColumns()
+    <K_IN> "("
+    unpivotInClause = PivotSingleInItems()
+    ")"
+    ")"
+    {
+        retval.setUnPivotClause(unpivotClause);
+        retval.setUnPivotForClause(unpivotForClause);
+        retval.setUnPivotInClause(unpivotInClause);
+        return retval;
+    }
+}
+
 List<Table> IntoClause():
 {
     List<Table> tables = new ArrayList<Table>();
@@ -1674,6 +1702,7 @@ FromItem FromItem():
 {
     FromItem fromItem = null;
     Pivot pivot = null;
+    UnPivot unpivot = null;
     Alias alias = null;
     MySQLIndexHint indexHint = null;
 }
@@ -1696,6 +1725,7 @@ FromItem FromItem():
                           { fromItem = new ParenthesisFromItem(fromItem); }
                         )
                     ")"
+                    [ LOOKAHEAD(2) unpivot=UnPivot() { fromItem.setUnPivot(unpivot); } ]
                 )
                 |
                 LOOKAHEAD(TableFunction())
@@ -1706,6 +1736,7 @@ FromItem FromItem():
                 fromItem=LateralSubSelect()
             )
             [ alias=Alias() { fromItem.setAlias(alias); } ]
+			[ LOOKAHEAD(2) unpivot=UnPivot() { fromItem.setUnPivot(unpivot); } ]
 			[(LOOKAHEAD(2) pivot=PivotXml()|pivot=Pivot()) { fromItem.setPivot(pivot); } ]
             [
                 LOOKAHEAD(2)
@@ -3236,20 +3267,28 @@ AnalyticExpression AnalyticExpression(Function function) :
     WindowElement windowElement = null;
     //KeepExpression keep = null;
     //boolean distinct = false;
-    //boolean ignoreNulls = false;
+    boolean partitionByBrackets = false;
+    Expression filter = null;
 }
 {
-    (<K_OVER> {retval.setType(AnalyticType.OVER);} 
+
+    [ <K_FILTER> "(" <K_WHERE> filter = Expression() ")" ]
+
+    (<K_OVER> {retval.setType(AnalyticType.OVER);}
         | <K_WITHIN> <K_GROUP> {retval.setType(AnalyticType.WITHIN_GROUP);} )
 
     "("
-        [<K_PARTITION> <K_BY> expressionList=SimpleExpressionList() ]
-        [olist=OrderByElements() [windowElement = WindowElement() ] ]
+        [<K_PARTITION> <K_BY>
+            (LOOKAHEAD(3) expressionList=SimpleExpressionList() | "(" {partitionByBrackets = true;} expressionList=SimpleExpressionList() ")" )
+        ]
+        [olist=OrderByElements() ]
+        [windowElement = WindowElement() ]
         
     {
-        retval.setPartitionExpressionList(expressionList);
+        retval.setPartitionExpressionList(expressionList, partitionByBrackets);
         retval.setOrderByElements(olist);
         retval.setWindowElement(windowElement);
+        retval.setFilterExpression(filter);
     }
     ")"
     {
@@ -3354,7 +3393,7 @@ Expression CaseWhenExpression() #CaseWhenExpression:
     (
             ( clause=WhenThenSearchCondition() { whenClauses.add(clause); } )+
         |
-            (LOOKAHEAD(RegularCondition()) switchExp=RegularCondition() | switchExp=BitwiseAndOr())
+            switchExp=Condition()
              ( clause=WhenThenValue() { whenClauses.add(clause); } )+
     )
    [<K_ELSE> elseExp=Condition()]

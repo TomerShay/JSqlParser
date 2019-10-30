@@ -65,6 +65,10 @@ Also I would like to know about needed examples or documentation stuff.
 
 ## Extensions in the latest SNAPSHOT version 3.1
 
+* allowed keyword **character** as object name
+* allowed keyword **size** as object name
+* introduced **FILTER** expression for window functions
+* allow more complex expressions for **CASE**.
 * allowed **start** as object name as column name or table name
 * introduced more positions for **!** instead of **NOT**
 * allowed more complex expressions within **if** function
