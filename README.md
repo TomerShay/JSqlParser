@@ -22,6 +22,7 @@ Please provide feedback on:
 * no discussions at the moment
 
 ## News
+* Released version **3.1** of JSqlParser
 * Released version **3.0** of JSqlParser
 * The array parsing is the default behaviour. Square bracket quotation has to be enabled using 
   a parser flag (**CCJSqlParser.withSquareBracketQuotation**).
@@ -63,17 +64,8 @@ To help JSqlParser's development you are encouraged to provide
 
 Also I would like to know about needed examples or documentation stuff.
 
-## Extensions in the latest SNAPSHOT version 3.1
+## Extensions in the latest SNAPSHOT version 3.2
 
-* allowed keyword **character** as object name
-* allowed keyword **size** as object name
-* introduced **FILTER** expression for window functions
-* allow more complex expressions for **CASE**.
-* allowed **start** as object name as column name or table name
-* introduced more positions for **!** instead of **NOT**
-* allowed more complex expressions within **if** function
-* introduced multicolumn alias like **select * from mytab as tab(c1, c2)**
-    * additional type definition is possible (issue #849)
 
 ## Extensions of JSqlParser releases
 
@@ -141,7 +133,7 @@ And this is the dependency declaration in your pom:
 <dependency>
 	<groupId>com.github.jsqlparser</groupId>
 	<artifactId>jsqlparser</artifactId>
-	<version>3.0</version>
+	<version>3.1</version>
 </dependency>
 ```
 

@@ -1599,12 +1599,6 @@ public class SelectTest {
     }
 
     @Test
-    public void asdasdasd() throws JSQLParserException {
-        String stmt = "SELECT a FROM LabelData ld WHERE Serial1 NOT IN (SELECT CardNo FROM CardStatus WHERE BatchName = 'SHUKRAN_UAE_072017_001' AND SetupName = '1st_Pack' AND asdzxc NOT IN (SELECT qdaszxc FROM sets GROUP BY tests) GROUP BY BatchName) AND ld.BatchName = 'SHUKRAN_UAE_072017_001' AND SetupName = '1st_Pack' GROUP BY RecNo";
-        assertSqlCanBeParsedAndDeparsed(stmt);
-    }
-
-    @Test
     public void testStraightJoinInSelect() throws JSQLParserException {
         String stmt = "SELECT STRAIGHT_JOIN col, col2 FROM tbl INNER JOIN tbl2 ON tbl.id = tbl2.id";
         assertSqlCanBeParsedAndDeparsed(stmt);
@@ -2974,8 +2968,7 @@ public class SelectTest {
     }
 
     /**
-     * Validates that a SELECT with FOR UPDATE WAIT <TIMEOUT> can be parsed and
-     * deparsed
+     * Validates that a SELECT with FOR UPDATE WAIT <TIMEOUT> can be parsed and deparsed
      */
     @Test
     public void testForUpdateWaitParseDeparse() throws JSQLParserException {
@@ -2983,8 +2976,8 @@ public class SelectTest {
     }
 
     /**
-     * Validates that a SELECT with FOR UPDATE WAIT <TIMEOUT> correctly sets a
-     * {@link Wait} with the correct timeout value.
+     * Validates that a SELECT with FOR UPDATE WAIT <TIMEOUT> correctly sets a {@link Wait} with the
+     * correct timeout value.
      */
     @Test
     public void testForUpdateWaitWithTimeout() throws JSQLParserException {
@@ -2996,6 +2989,11 @@ public class SelectTest {
 
         long waitTime = wait.getTimeout();
         assertEquals("wait time should be 60", waitTime, 60L);
+    }
+
+    @Test
+    public void testForUpdateNoWait() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("SELECT * FROM mytable FOR UPDATE NOWAIT");
     }
 
 //    @Test public void testSubSelectFailsIssue394() throws JSQLParserException {
@@ -3718,17 +3716,17 @@ public class SelectTest {
     public void testLimitClauseDroppedIssue845_2() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT * FROM employee ORDER BY emp_id LIMIT 10 OFFSET 2");
     }
-    
+
     @Test
     public void testChangeKeywordIssue859() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT * FROM CHANGE.TEST");
     }
-    
+
     @Test
     public void testEndKeyword() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT end AS end_6 FROM mytable");
     }
-    
+
     @Test
     public void testStartKeyword() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT c0_.start AS start_5 FROM mytable");
@@ -3764,8 +3762,23 @@ public class SelectTest {
     public void testKeywordSizeIssue880() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT b.pattern_size_id, b.pattern_id, b.variation, b.measure_remark, b.pake_name, b.ident_size, CONCAT( GROUP_CONCAT(a.size) ) AS 'title', CONCAT( '[', GROUP_CONCAT( '{\"patternSizeDetailId\":', a.pattern_size_detail_id, ',\"patternSizeId\":', a.pattern_size_id, ',\"size\":\"', a.size, '\",\"sizeValue\":', a.size_value SEPARATOR '},' ), '}]' ) AS 'designPatternSizeDetailJson' FROM design_pattern_size_detail a LEFT JOIN design_pattern_size b ON a.pattern_size_id = b.pattern_size_id WHERE b.pattern_id = 792679713905573986 GROUP BY b.pake_name,b.pattern_size_id", true);
     }
-
+@Test
     public void testKeywordCharacterIssue884() throws JSQLParserException {
         assertSqlCanBeParsedAndDeparsed("SELECT Character, Duration FROM actor");
+    }
+
+    @Test
+    public void testCrossApplyIssue344() throws JSQLParserException {
+        assertSqlCanBeParsedAndDeparsed("select s.*, c.*, calc2.summary\n"
+                + "from student s\n"
+                + "join class c on s.class_id = c.id\n"
+                + "cross apply (\n"
+                + "  select s.first_name + ' ' + s.last_name + ' (' + s.sex + ')' as student_full_name\n"
+                + ") calc1\n"
+                + "cross apply (\n"
+                + "  select case c.some_styling_type when 'A' then c.name + ' - ' + calc1.student_full_name\n"
+                + "            when 'B' then calc1.student_full_name + ' - ' + c.name\n"
+                + "            else calc1.student_full_name end as summary\n"
+                + ") calc2", true);
     }
 }
